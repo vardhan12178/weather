@@ -14,10 +14,12 @@ const Header = ({ setLocation, toggleDarkMode, darkMode }) => {
 
   return (
     <header className="mb-5 w-full">
-      <nav className="bg-gradient-to-r from-blue-700 to-purple-700 dark:from-gray-500 dark:to-gray-400 shadow-lg">
+      <nav className="bg-gradient-to-r from-blue-800 to-purple-800 dark:from-gray-700 dark:to-gray-600 shadow-lg">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <h1 className="text-2xl sm:text-4xl font-bold text-white dark:text-gray-900 text-center flex-1">Weather Dashboard</h1>
+            <h1 className="text-3xl sm:text-4xl font-bold text-yellow-300 dark:text-yellow-200 text-center flex-1 tracking-tight">
+              Weather Dashboard
+            </h1>
             <div className="ml-4">
               <DarkModeToggle toggleDarkMode={toggleDarkMode} darkMode={darkMode} />
             </div>
@@ -35,7 +37,7 @@ const Header = ({ setLocation, toggleDarkMode, darkMode }) => {
           />
           <button 
             type="submit" 
-            className="absolute top-1/2 right-2 transform -translate-y-1/2 p-1.5 text-xs sm:text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors dark:bg-gray-900 dark:hover:bg-gray-500 dark:focus:ring-2 dark:focus:ring-gray-500 dark:focus:outline-none dark:transition-colors"
+            className="absolute top-1/2 right-2 transform -translate-y-1/2 p-1.5 text-xs sm:text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors dark:bg-gray-900 dark:hover:bg-gray-500 dark:focus:ring-2 dark:focus:ring-gray-500 dark:focus:outline-none"
           >
             Search
           </button>

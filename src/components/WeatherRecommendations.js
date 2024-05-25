@@ -35,7 +35,7 @@ const WeatherRecommendations = ({ weatherData }) => {
   const recommendation = getRecommendations(weatherData);
 
   return (
-    <div className="bg-gradient-to-r mb-4 from-green-500 to-teal-600 dark:from-gray-800 dark:to-gray-800 p-3 mt-4 rounded-xl shadow-lg text-center text-white">
+    <div className="bg-gradient-to-r mb-4 from-green-500 to-teal-600 dark:from-gray-800 dark:to-gray-700 p-3 mt-4 rounded-xl shadow-lg text-center text-white">
       <h2 className="text-2xl font-bold mb-2">Recommendations</h2>
       <div className="flex flex-col items-center">
         {recommendation.icon}
