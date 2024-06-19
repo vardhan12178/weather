@@ -13,14 +13,14 @@ const WeatherAlerts = ({ weatherData }) => {
         if (weather.main.temp > 35) {
           return "🔥 Extreme Heat Alert!";
         }
-        break; // Add break statement here
+        break; 
       case 'Haze':
         if (weather.main.temp > 35) {
           return "🔥 Extreme Heat Alert!";
         } else if (weather.main.temp < 0) {
           return "🥶 Extreme Cold Alert!";
         }
-        break; // Add break statement here
+        break; 
       default:
         return null;
     }

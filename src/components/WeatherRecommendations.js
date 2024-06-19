@@ -4,7 +4,7 @@ import { WiDaySunny, WiSnow, WiCloudy, WiThunderstorm, WiThermometer, WiUmbrella
 
 const WeatherRecommendations = ({ weatherData }) => {
   const [timeOfDay, setTimeOfDay] = useState(null);
-  const timezoneApiKey = '9WIGB6WMZB3M'; // Your TimezoneDB API key
+  const timezoneApiKey = '9WIGB6WMZB3M'; 
 
   useEffect(() => {
     const fetchTimeOfDay = async () => {
@@ -38,21 +38,25 @@ const WeatherRecommendations = ({ weatherData }) => {
     }
 
     if (temp > 30) {
-      if (timeOfDay >= 18 || timeOfDay < 6) { // If it's night time
+      if (timeOfDay >= 18 || timeOfDay < 6) { 
         return { message: "It's very hot outside. Try to stay cool indoors!", icon: <WiThermometer size={48} color="#FFF" /> };
       }
       return { message: "It's very hot outside. Stay hydrated and avoid direct sunlight!", icon: <WiThermometer size={48} color="#FFF" /> };
     }
     if (temp > 25) {
-      if (timeOfDay >= 18 || timeOfDay < 6) { // If it's night time
-        return { message: "It's a warm night. Enjoy the evening breeze!", icon: <WiDaySunny size={48} color="#FFF" /> };
+      if (timeOfDay >= 18 || timeOfDay < 6) { 
+        return { message: "It's warm outside. Enjoy the evening breeze!", icon: <WiDaySunny size={48} color="#FFF" /> };
       }
       return { message: "It's a great day for the beach!", icon: <WiDaySunny size={48} color="#FFF" /> };
     }
     if (temp < 0) {
-      return { message: "Stay warm and consider indoor activities!", icon: <WiSnow size={48} color="#FFF" /> };
+      return { message: "It's freezing cold outside. Stay warm and consider indoor activities!", icon: <WiSnow size={48} color="#FFF" /> };
     }
 
+   
+    if (timeOfDay >= 18 || timeOfDay < 6) { 
+      return { message: "It's a nice night for a walk!", icon: <WiDaySunny size={48} color="#FFF" /> };
+    }
     return { message: "It's a nice day for a walk!", icon: <WiDaySunny size={48} color="#FFF" /> };
   };
 

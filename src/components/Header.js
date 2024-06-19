@@ -37,7 +37,7 @@ const Header = ({ setLocation, toggleDarkMode, darkMode }) => {
               placeholder="Enter city" 
               className="w-full p-2 pl-12 pr-20 text-sm sm:text-lg rounded-lg shadow-lg border-2 border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white bg-white text-gray-800" 
             />
-            <div className="absolute mt-1 right-14 top-1/2 transform -translate-y-1/2">
+            <div className="absolute items-center mt-1.5 right-14 top-1/2 transform -translate-y-1/2">
               <VoiceSearch setLocation={setLocation} />
             </div>
             <button 
