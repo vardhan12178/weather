@@ -1,7 +1,25 @@
+import { useEffect, useState } from 'react';
+import getTimeAtLocation from './getTimeAtLocation';
 import { WiDaySunny, WiSnow, WiCloudy, WiThunderstorm, WiThermometer, WiUmbrella } from 'weather-icons-react';
 
 const WeatherRecommendations = ({ weatherData }) => {
-  const getRecommendations = (weather) => {
+  const [timeOfDay, setTimeOfDay] = useState(null);
+  const timezoneApiKey = '9WIGB6WMZB3M'; // Your TimezoneDB API key
+
+  useEffect(() => {
+    const fetchTimeOfDay = async () => {
+      const { lat, lon } = weatherData.coord;
+      const data = await getTimeAtLocation(lat, lon, timezoneApiKey);
+      if (data) {
+        const currentTime = new Date(data.timestamp * 1000);
+        setTimeOfDay(currentTime.getHours());
+      }
+    };
+
+    fetchTimeOfDay();
+  }, [weatherData]);
+
+  const getRecommendations = (weather, timeOfDay) => {
     const { main, weather: weatherDetails } = weather;
     const condition = weatherDetails[0].main;
     const temp = main.temp;
@@ -20,9 +38,15 @@ const WeatherRecommendations = ({ weatherData }) => {
     }
 
     if (temp > 30) {
+      if (timeOfDay >= 18 || timeOfDay < 6) { // If it's night time
+        return { message: "It's very hot outside. Try to stay cool indoors!", icon: <WiThermometer size={48} color="#FFF" /> };
+      }
       return { message: "It's very hot outside. Stay hydrated and avoid direct sunlight!", icon: <WiThermometer size={48} color="#FFF" /> };
     }
     if (temp > 25) {
+      if (timeOfDay >= 18 || timeOfDay < 6) { // If it's night time
+        return { message: "It's a warm night. Enjoy the evening breeze!", icon: <WiDaySunny size={48} color="#FFF" /> };
+      }
       return { message: "It's a great day for the beach!", icon: <WiDaySunny size={48} color="#FFF" /> };
     }
     if (temp < 0) {
@@ -32,7 +56,7 @@ const WeatherRecommendations = ({ weatherData }) => {
     return { message: "It's a nice day for a walk!", icon: <WiDaySunny size={48} color="#FFF" /> };
   };
 
-  const recommendation = getRecommendations(weatherData);
+  const recommendation = getRecommendations(weatherData, timeOfDay);
 
   return (
     <div className="bg-gradient-to-r mb-4 from-green-500 to-teal-600 dark:from-gray-800 dark:to-gray-700 p-3 mt-4 rounded-xl shadow-lg text-center text-white">

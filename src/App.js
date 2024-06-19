@@ -14,6 +14,11 @@ const App = () => {
   const [coordinates, setCoordinates] = useState({ lat: null, lon: null });
   const [error, setError] = useState('');
 
+  const clearLocationData = () => {
+    setCoordinates({ lat: null, lon: null });
+    setWeatherData(null);
+  };
+
   useEffect(() => {
     const fetchWeatherByLocation = async (lat, lon) => {
       try {
@@ -54,6 +59,8 @@ const App = () => {
   }, [location]);
 
   useEffect(() => {
+    clearLocationData(); // Clear previous location data on component mount
+
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -70,7 +77,7 @@ const App = () => {
     } else {
       setError('Geolocation is not supported by this browser.');
     }
-  }, []);
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-r from-blue-200 to-purple-400 dark:from-black dark:to-black">
