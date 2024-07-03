@@ -1,5 +1,5 @@
 import React from 'react';
-import { WiThunderstorm, WiSnow, WiUmbrella, WiThermometer } from 'react-icons/wi';
+
 
 const WeatherAlerts = ({ weatherData }) => {
   const showAlert = (weather) => {
@@ -33,8 +33,8 @@ const WeatherAlerts = ({ weatherData }) => {
 
   return (
     alertMessage && (
-      <div className="text-center p-4 mb-4">
-        <p className="text-red-600 dark:text-red-800 text-lg font-bold">{alertMessage}</p>
+      <div className="text-center p-1 mb-1">
+        <p className="text-red-700 dark:text-red-400 text-lg font-bold">{alertMessage}</p>
       </div>
     )
   );

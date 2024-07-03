@@ -60,7 +60,7 @@ const WeatherForecast = ({ location, coordinates, start, end, hoverEffect }) => 
             {renderIcon(day.weather[0].main)}
           </div>
           <p className="text-lg">{day.weather[0].description}</p>
-          <p className="text-xl font-bold">{day.main.temp}°C</p>
+          <p className="text-xl font-bold text-yellow-200">{day.main.temp}°C</p>
         </div>
       ))}
     </div>

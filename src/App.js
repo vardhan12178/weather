@@ -5,9 +5,9 @@ import WeatherCard from './components/WeatherCard';
 import WeatherForecast from './components/WeatherForecast';
 import DarkModeToggle from './components/DarkModeToggle';
 import Footer from './components/Footer';
-import { FaExclamationCircle } from 'react-icons/fa';
 import WeatherAlerts from './components/WeatherAlerts';
 import WeatherRecommendations from './components/WeatherRecommendations';
+import NotFound from './components/NotFound'; // Import NotFound component
 
 const App = () => {
   const [weatherData, setWeatherData] = useState(null);
@@ -83,18 +83,15 @@ const App = () => {
       <Header setLocation={setLocation} />
       <DarkModeToggle />
       <main className="flex-grow flex flex-col items-center">
-        {error && (
-          <div className="bg-red-600 dark:bg-red-800 text-white text-center p-4 mb-4 rounded-lg shadow-md w-full max-w-xl">
-            <div className="flex items-center justify-center mb-2">
-              <FaExclamationCircle className="mr-2 text-2xl" />
-              <p>{error}</p>
-            </div>
+        {error && location && (
+          <div className="w-full max-w-xl mt-2 px-4 sm:px-6 lg:px-8">
+            <NotFound />
           </div>
         )}
         {weatherData && (
-          <div className="w-full max-w-6xl mt-8 px-4 sm:px-6 lg:px-8">
+          <div className="w-full max-w-6xl mt-2 px-4 sm:px-6 lg:px-8">
+          <WeatherAlerts weatherData={weatherData} />
             <WeatherRecommendations weatherData={weatherData} />
-            <WeatherAlerts weatherData={weatherData} />
             <WeatherCard weatherData={weatherData} />
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 mt-8">
               {[1, 2, 3, 4].map(day => (

@@ -1,17 +1,7 @@
 import React from 'react';
 import { WiThermometer, WiHumidity, WiStrongWind } from 'react-icons/wi';
 
-const WeatherCard = ({ weatherData, error }) => {
-  if (error) {
-    return (
-      <div className="bg-red-600 dark:bg-red-800 p-6 rounded-xl shadow-lg text-center text-white">
-        <h2 className="text-2xl sm:text-3xl font-semibold mb-2">Error</h2>
-        <p className="text-lg sm:text-xl mb-2">{error}</p>
-        <p className="text-3xl sm:text-5xl font-bold mb-4">😞</p>
-      </div>
-    );
-  }
-
+const WeatherCard = ({ weatherData }) => {
   const iconUrl = `https://openweathermap.org/img/wn/${weatherData.weather[0].icon}.png`;
 
   const iconClasses = "w-6 h-6 mr-2 text-yellow-200 dark:text-yellow-200";
