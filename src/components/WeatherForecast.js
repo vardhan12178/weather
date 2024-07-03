@@ -55,11 +55,11 @@ const WeatherForecast = ({ location, coordinates, start, end, hoverEffect }) => 
       {error && <p className="text-red-600 text-center">{error}</p>}
       {forecastData.map((day, index) => (
         <div key={index} className="mb-4">
-          <p className="text-lg font-semibold">{formatDate(day.dt_txt)}</p>
+          <p className="text-md sm:text-lg font-semibold">{formatDate(day.dt_txt)}</p>
           <div className="flex justify-center">
             {renderIcon(day.weather[0].main)}
           </div>
-          <p className="text-lg">{day.weather[0].description}</p>
+          <p className="text-md sm:text-lg">{day.weather[0].description}</p>
           <p className="text-xl font-bold text-yellow-200">{day.main.temp}°C</p>
         </div>
       ))}
