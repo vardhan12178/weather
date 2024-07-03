@@ -75,7 +75,7 @@ const WeatherRecommendations = ({ weatherData }) => {
     <div className="text-center p-2 mb-2">
       <div className="flex items-center justify-center">
         {recommendation.icon}
-        <p className="text-lg ml-2 text-purple-900 dark:text-yellow-200">{recommendation.message}</p>
+        <p className="text-md sm:text-lg ml-2 text-purple-900 dark:text-yellow-200">{recommendation.message}</p>
       </div>
     </div>
   );
