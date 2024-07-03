@@ -18,7 +18,7 @@ const Header = ({ setLocation, toggleDarkMode, darkMode }) => {
       <nav className="bg-gradient-to-r from-blue-800 to-purple-800 dark:from-gray-700 dark:to-gray-600 shadow-lg">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <h1 className="text-3xl sm:text-4xl font-bold text-yellow-200 dark:text-yellow-200 text-center flex-1 tracking-tight">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-yellow-200 dark:text-yellow-200 text-center flex-1 tracking-tight">
               Weather Dashboard
             </h1>
             <div className="ml-4">
