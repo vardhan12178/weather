@@ -1,3 +1,6 @@
+import React from 'react';
+import { WiThunderstorm, WiSnow, WiUmbrella, WiThermometer } from 'react-icons/wi';
+
 const WeatherAlerts = ({ weatherData }) => {
   const showAlert = (weather) => {
     const condition = weather.weather[0].main;
@@ -13,14 +16,14 @@ const WeatherAlerts = ({ weatherData }) => {
         if (weather.main.temp > 35) {
           return "🔥 Extreme Heat Alert!";
         }
-        break; 
+        break;
       case 'Haze':
         if (weather.main.temp > 35) {
           return "🔥 Extreme Heat Alert!";
         } else if (weather.main.temp < 0) {
           return "🥶 Extreme Cold Alert!";
         }
-        break; 
+        break;
       default:
         return null;
     }
@@ -30,8 +33,8 @@ const WeatherAlerts = ({ weatherData }) => {
 
   return (
     alertMessage && (
-      <div className="bg-red-600 dark:bg-gray-800 text-white text-center p-4 mb-4 rounded-lg shadow-md">
-        <p className="font-bold">{alertMessage}</p>
+      <div className="text-center p-4 mb-4">
+        <p className="text-red-600 dark:text-red-800 text-lg font-bold">{alertMessage}</p>
       </div>
     )
   );

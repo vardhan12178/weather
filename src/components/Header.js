@@ -14,7 +14,7 @@ const Header = ({ setLocation, toggleDarkMode, darkMode }) => {
   };
 
   return (
-    <header className="mb-5 w-full">
+    <header className="mb-1 w-full">
       <nav className="bg-gradient-to-r from-blue-800 to-purple-800 dark:from-gray-700 dark:to-gray-600 shadow-lg">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">

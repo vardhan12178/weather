@@ -1,4 +1,5 @@
-import { WiHumidity, WiStrongWind, WiThermometer } from 'react-icons/wi';
+import React from 'react';
+import { WiThermometer, WiHumidity, WiStrongWind } from 'react-icons/wi';
 
 const WeatherCard = ({ weatherData, error }) => {
   if (error) {
@@ -11,27 +12,29 @@ const WeatherCard = ({ weatherData, error }) => {
     );
   }
 
-  const iconUrl = `https://openweathermap.org/img/wn/${weatherData.weather[0].icon}@2x.png`;
+  const iconUrl = `https://openweathermap.org/img/wn/${weatherData.weather[0].icon}.png`;
+
+  const iconClasses = "w-6 h-6 mr-2 text-yellow-200 dark:text-yellow-200";
 
   return (
     <div className="bg-gradient-to-r from-blue-500 to-purple-600 dark:from-gray-800 dark:to-gray-700 p-3 rounded-xl shadow-lg text-center text-white">
       <h2 className="text-2xl sm:text-3xl font-semibold mb-2">{weatherData.name}</h2>
-      <img src={iconUrl} alt={weatherData.weather[0].description} className="mx-auto w-20 h-20 sm:w-24 sm:h-24 mb-4" />
+      <img src={iconUrl} alt={weatherData.weather[0].description} className="mx-auto w-20 h-20 sm:w-20 sm:h-20 mb-2" />
       <p className="text-lg sm:text-xl capitalize mb-2">{weatherData.weather[0].description}</p>
       <p className="text-3xl text-yellow-200 dark:text-yellow-200 sm:text-5xl font-bold mb-4">{weatherData.main.temp}°C</p>
       <div className="flex flex-col sm:flex-row justify-around text-lg mb-4 space-y-2 sm:space-y-0 sm:space-x-2">
         <div className="flex flex-col items-center">
-          <WiThermometer className="w-6 h-6 mr-2 text-blue-300 dark:text-gray-300" />
+          <WiThermometer className={iconClasses} />
           <p className="font-semibold">RealFeel</p>
           <p>{weatherData.main.feels_like}°C</p>
         </div>
         <div className="flex flex-col items-center">
-          <WiHumidity className="w-6 h-6 mr-2 text-blue-300 dark:text-gray-300" />
+          <WiHumidity className={iconClasses} />
           <p className="font-semibold">Humidity</p>
           <p>{weatherData.main.humidity}%</p>
         </div>
         <div className="flex flex-col items-center">
-          <WiStrongWind className="w-6 h-6 mr-2 text-blue-300 dark:text-gray-300" />
+          <WiStrongWind className={iconClasses} />
           <p className="font-semibold">Wind</p>
           <p>{weatherData.wind.speed} m/s</p>
         </div>
