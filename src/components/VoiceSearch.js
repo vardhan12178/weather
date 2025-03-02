@@ -35,10 +35,12 @@ const VoiceSearch = ({ setLocation }) => {
     <button
       type="button"
       onClick={handleVoiceSearch}
-      className={`p-1.5 text-xs sm:text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors dark:bg-gray-900 dark:hover:bg-gray-500 dark:focus:ring-2 dark:focus:ring-gray-500 dark:focus:outline-none ${isListening ? 'animate-pulse' : ''}`}
-      style={{ marginLeft: '-35px', zIndex: '1', position: 'relative', top: '-5px' }}
+      className={`p-2.5 rounded-full bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-300 ease-in-out ${
+        isListening ? 'animate-pulse ring-2 ring-blue-500' : ''
+      }`}
+      aria-label="Voice Search"
     >
-      <FaMicrophone />
+      <FaMicrophone className={`w-5 h-5 text-white ${isListening ? 'scale-110' : 'scale-100'}`} />
     </button>
   );
 };

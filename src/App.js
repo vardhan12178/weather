@@ -3,11 +3,10 @@ import axios from 'axios';
 import Header from './components/Header';
 import WeatherCard from './components/WeatherCard';
 import WeatherForecast from './components/WeatherForecast';
-import DarkModeToggle from './components/DarkModeToggle';
 import Footer from './components/Footer';
 import WeatherAlerts from './components/WeatherAlerts';
 import WeatherRecommendations from './components/WeatherRecommendations';
-import NotFound from './components/NotFound'; // Import NotFound component
+import NotFound from './components/NotFound';
 
 const App = () => {
   const [weatherData, setWeatherData] = useState(null);
@@ -79,31 +78,53 @@ const App = () => {
   }, []);
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-r from-blue-200 to-purple-400 dark:from-black dark:to-black">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 dark:from-gray-900 dark:to-gray-800 font-sans">
       <Header setLocation={setLocation} />
-      <DarkModeToggle />
-      <main className="flex-grow flex flex-col items-center">
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {error && location && (
-          <div className="w-full max-w-xl mt-2 px-4 sm:px-6 lg:px-8">
+          <div className="w-full max-w-xl mx-auto mt-4">
             <NotFound />
           </div>
         )}
         {weatherData && (
-          <div className="w-full max-w-6xl mt-2 px-4 sm:px-6 lg:px-8">
-          <WeatherAlerts weatherData={weatherData} />
-            <WeatherRecommendations weatherData={weatherData} />
-            <WeatherCard weatherData={weatherData} />
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 mt-8">
-              {[1, 2, 3, 4].map(day => (
-                <WeatherForecast
-                  key={`day${day}`}
-                  location={location}
-                  coordinates={coordinates}
-                  start={day}
-                  end={day + 1}
-                  hoverEffect={true}
-                />
-              ))}
+          <div className="space-y-8">
+            {/* Weather Card */}
+            <div className="flex justify-center">
+              <div className="w-full max-w-2xl">
+                <WeatherCard weatherData={weatherData} />
+              </div>
+            </div>
+
+            {/* Weather Alerts and Recommendations */}
+            <div className="grid grid-cols-1  gap-6 ">
+              {/* Weather Alerts */}
+              <div>
+                <WeatherAlerts weatherData={weatherData} />
+              </div>
+
+              {/* Weather Recommendations */}
+              <div>
+                <WeatherRecommendations weatherData={weatherData} />
+              </div>
+            </div>
+
+            {/* Weather Forecast */}
+            <div className="mt-8">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-6">
+                5-Day Forecast
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map((day) => (
+                  <WeatherForecast
+                    key={`day${day}`}
+                    location={location}
+                    coordinates={coordinates}
+                    start={day}
+                    end={day + 1}
+                    hoverEffect={true}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         )}

@@ -1,27 +1,52 @@
 import React from 'react';
-
+import { WiLightning, WiSnow, WiRain, WiThermometer} from 'react-icons/wi';
 
 const WeatherAlerts = ({ weatherData }) => {
-  const showAlert = (weather) => {
+  const getAlertDetails = (weather) => {
     const condition = weather.weather[0].main;
+    const temp = weather.main.temp;
 
     switch (condition) {
       case 'Thunderstorm':
-        return "⚠️ Severe Thunderstorm Alert!";
+        return {
+          message: "Severe Thunderstorm Alert!",
+          icon: <WiLightning className="w-8 h-8 text-yellow-500" />,
+          bgColor: "bg-yellow-100/50 dark:bg-yellow-900/20",
+        };
       case 'Snow':
-        return "❄️ Snow Alert!";
+        return {
+          message: "Snow Alert!",
+          icon: <WiSnow className="w-8 h-8 text-blue-500" />,
+          bgColor: "bg-blue-100/50 dark:bg-blue-900/20",
+        };
       case 'Rain':
-        return "☔️ Rain Alert!";
+        return {
+          message: "Rain Alert!",
+          icon: <WiRain className="w-8 h-8 text-blue-500" />,
+          bgColor: "bg-blue-100/50 dark:bg-blue-900/20",
+        };
       case 'Clear':
-        if (weather.main.temp > 35) {
-          return "🔥 Extreme Heat Alert!";
+        if (temp > 35) {
+          return {
+            message: "Extreme Heat Alert!",
+            icon: <WiThermometer className="w-8 h-8 text-red-500" />,
+            bgColor: "bg-red-100/50 dark:bg-red-900/20",
+          };
         }
         break;
       case 'Haze':
-        if (weather.main.temp > 35) {
-          return "🔥 Extreme Heat Alert!";
-        } else if (weather.main.temp < 0) {
-          return "🥶 Extreme Cold Alert!";
+        if (temp > 35) {
+          return {
+            message: "Extreme Heat Alert!",
+            icon: <WiThermometer className="w-8 h-8 text-red-500" />,
+            bgColor: "bg-red-100/50 dark:bg-red-900/20",
+          };
+        } else if (temp < 0) {
+          return {
+            message: "Extreme Cold Alert!",
+            icon: <WiSnow className="w-8 h-8 text-blue-500" />,
+            bgColor: "bg-blue-100/50 dark:bg-blue-900/20",
+          };
         }
         break;
       default:
@@ -29,12 +54,18 @@ const WeatherAlerts = ({ weatherData }) => {
     }
   };
 
-  const alertMessage = showAlert(weatherData);
+  const alertDetails = getAlertDetails(weatherData);
 
   return (
-    alertMessage && (
-      <div className="text-center p-1 mb-1">
-        <p className="text-red-700 dark:text-red-400 text-lg font-bold">{alertMessage}</p>
+    alertDetails && (
+      <div className={`${alertDetails.bgColor} backdrop-blur-md rounded-xl p-4 shadow-lg flex items-center justify-center space-x-4`}>
+        {/* Alert Icon */}
+        <div>{alertDetails.icon}</div>
+
+        {/* Alert Message */}
+        <p className="text-lg font-semibold text-gray-900 dark:text-white">
+          {alertDetails.message}
+        </p>
       </div>
     )
   );

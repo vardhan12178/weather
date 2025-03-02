@@ -3,11 +3,20 @@ import { ExclamationCircleIcon } from '@heroicons/react/solid';
 
 const NotFound = () => {
   return (
-    <div className="flex justify-center items-center  dark:from-black dark:to-black h-90">
-      <div className="bg-gradient-to-r from-blue-500 to-purple-600 dark:from-gray-800 dark:to-gray-700 p-6 rounded-xl shadow-lg text-center text-white max-w-md w-full rounded-xl"> {/* Added rounded-xl here */}
-        <h2 className="text-2xl sm:text-2xl font-semibold mb-4">Location Not Found</h2>
-        <p className="text-lg mb-4">Please enter a valid city name.</p>
-        <ExclamationCircleIcon className="w-12 h-12 sm:w-16 sm:h-16 text-white mb-6 mx-auto" />
+    <div className="flex justify-center items-center min-h-[200px]">
+      <div className="bg-white/20 dark:bg-gray-800/30 backdrop-blur-md rounded-xl shadow-lg p-8 text-center border border-white/10 dark:border-gray-700/20 max-w-md w-full">
+        {/* Icon */}
+        <ExclamationCircleIcon className="w-16 h-16 text-red-500 dark:text-red-400 mx-auto mb-6" />
+
+        {/* Heading */}
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4">
+          Location Not Found
+        </h2>
+
+        {/* Message */}
+        <p className="text-lg text-gray-700 dark:text-gray-300">
+          Please enter a valid city name.
+        </p>
       </div>
     </div>
   );

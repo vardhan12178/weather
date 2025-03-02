@@ -33,34 +33,49 @@ const WeatherForecast = ({ location, coordinates, start, end, hoverEffect }) => 
   const renderIcon = (main) => {
     switch (main) {
       case 'Clear':
-        return <WiDaySunny className="text-yellow-300 w-8 h-8 mx-auto" />;
+        return <WiDaySunny className="w-10 h-10 text-yellow-400 dark:text-yellow-300" />;
       case 'Clouds':
-        return <WiCloudy className="text-gray-300 w-8 h-8 mx-auto" />;
+        return <WiCloudy className="w-10 h-10 text-gray-400 dark:text-gray-300" />;
       case 'Rain':
-        return <WiRain className="text-blue-300 w-8 h-8 mx-auto" />;
+        return <WiRain className="w-10 h-10 text-blue-400 dark:text-blue-300" />;
       case 'Snow':
-        return <WiSnow className="text-white w-8 h-8 mx-auto" />;
+        return <WiSnow className="w-10 h-10 text-white dark:text-gray-200" />;
       default:
-        return <WiDaySunny className="text-yellow-300 w-8 h-8 mx-auto" />;
+        return <WiDaySunny className="w-10 h-10 text-yellow-400 dark:text-yellow-300" />;
     }
   };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB');
+    return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
   };
 
   return (
-    <div className={`flex-grow bg-gradient-to-r from-blue-500 to-purple-600 dark:from-gray-800 dark:to-gray-700 p-3 rounded-xl shadow-lg text-center text-white ${hoverEffect ? 'transform hover:scale-105 transition-transform duration-300 ease-in-out hover:bg-opacity-80' : ''}`}>
-      {error && <p className="text-red-600 text-center">{error}</p>}
+    <div
+      className={`bg-white/20 dark:bg-gray-800/30 backdrop-blur-md rounded-xl shadow-lg p-4 text-center text-gray-800 dark:text-white border border-white/10 dark:border-gray-700/20 ${
+        hoverEffect ? 'transform hover:scale-105 transition-transform duration-300 ease-in-out hover:shadow-xl' : ''
+      }`}
+    >
+      {error && <p className="text-red-500 text-sm">{error}</p>}
       {forecastData.map((day, index) => (
         <div key={index} className="mb-4">
-          <p className="text-md sm:text-lg font-semibold">{formatDate(day.dt_txt)}</p>
-          <div className="flex justify-center">
-            {renderIcon(day.weather[0].main)}
-          </div>
-          <p className="text-md sm:text-lg">{day.weather[0].description}</p>
-          <p className="text-xl font-bold text-yellow-200">{day.main.temp}°C</p>
+          {/* Date */}
+          <p className="text-sm sm:text-base font-semibold text-gray-700 dark:text-gray-200">
+            {formatDate(day.dt_txt)}
+          </p>
+
+          {/* Weather Icon */}
+          <div className="my-3">{renderIcon(day.weather[0].main)}</div>
+
+          {/* Weather Description */}
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 capitalize">
+            {day.weather[0].description}
+          </p>
+
+          {/* Temperature */}
+          <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-yellow-200 mt-2">
+            {day.main.temp}°C
+          </p>
         </div>
       ))}
     </div>
