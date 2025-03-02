@@ -52,7 +52,7 @@ const WeatherForecast = ({ location, coordinates, start, end, hoverEffect }) => 
 
   return (
     <div
-      className={`bg-white/20 dark:bg-gray-800/30 backdrop-blur-md rounded-xl shadow-lg p-4 text-center text-gray-800 dark:text-white border border-white/10 dark:border-gray-700/20 ${
+      className={`bg-white dark:bg-gray-800/30 backdrop-blur-md rounded-xl shadow-lg p-4 text-center text-gray-800 dark:text-white border border-white/10 dark:border-gray-700/20 ${
         hoverEffect ? 'transform hover:scale-105 transition-transform duration-300 ease-in-out hover:shadow-xl' : ''
       }`}
     >
@@ -65,8 +65,9 @@ const WeatherForecast = ({ location, coordinates, start, end, hoverEffect }) => 
           </p>
 
           {/* Weather Icon */}
-          <div className="my-3">{renderIcon(day.weather[0].main)}</div>
-
+          <div className="my-3 flex justify-center items-center">
+            {renderIcon(day.weather[0].main)}
+          </div>
           {/* Weather Description */}
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 capitalize">
             {day.weather[0].description}

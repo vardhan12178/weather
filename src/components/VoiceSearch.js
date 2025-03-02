@@ -40,7 +40,7 @@ const VoiceSearch = ({ setLocation }) => {
       }`}
       aria-label="Voice Search"
     >
-      <FaMicrophone className={`w-5 h-5 text-white ${isListening ? 'scale-110' : 'scale-100'}`} />
+      <FaMicrophone className={`w-4 h-4 text-white ${isListening ? 'scale-110' : 'scale-100'}`} />
     </button>
   );
 };

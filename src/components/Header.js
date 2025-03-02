@@ -79,7 +79,7 @@ const Header = ({ setLocation, toggleDarkMode, darkMode }) => {
             />
 
             {/* Voice Search */}
-            <div className="absolute inset-y-0 right-16 mr-5 flex items-center">
+            <div className="absolute inset-y-0 right-16 mr-6 flex items-center">
               <VoiceSearch setLocation={setLocation} />
             </div>
 

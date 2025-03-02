@@ -7,6 +7,7 @@ import Footer from './components/Footer';
 import WeatherAlerts from './components/WeatherAlerts';
 import WeatherRecommendations from './components/WeatherRecommendations';
 import NotFound from './components/NotFound';
+import HourlyTemperature from './components/HourlyTemperature';
 
 const App = () => {
   const [weatherData, setWeatherData] = useState(null);
@@ -47,6 +48,7 @@ const App = () => {
           `https://api.openweathermap.org/data/2.5/weather?q=${location}&appid=30755a4a95cbde88af53afaafad1ea50&units=metric`
         );
         setWeatherData(response.data);
+        setCoordinates({ lat: response.data.coord.lat, lon: response.data.coord.lon }); // Update coordinates
       } catch (err) {
         setWeatherData(null);
         setError('Location not found. Please enter a valid city.');
@@ -88,25 +90,19 @@ const App = () => {
         )}
         {weatherData && (
           <div className="space-y-8">
-            {/* Weather Card */}
-            <div className="flex justify-center">
-              <div className="w-full max-w-2xl">
+            {/* Weather Card and Hourly Temperature */}
+            <div className="flex flex-col lg:flex-row gap-8 justify-center items-stretch">
+              <div className="w-full lg:w-1/2 max-w-2xl h-full">
                 <WeatherCard weatherData={weatherData} />
+              </div>
+              <div className="w-full lg:w-1/2">
+                <HourlyTemperature lat={coordinates.lat} lon={coordinates.lon} />
               </div>
             </div>
 
             {/* Weather Alerts and Recommendations */}
-            <div className="grid grid-cols-1  gap-6 ">
-              {/* Weather Alerts */}
-              <div>
-                <WeatherAlerts weatherData={weatherData} />
-              </div>
-
-              {/* Weather Recommendations */}
-              <div>
-                <WeatherRecommendations weatherData={weatherData} />
-              </div>
-            </div>
+            <WeatherAlerts weatherData={weatherData} />
+            <WeatherRecommendations weatherData={weatherData} />
 
             {/* Weather Forecast */}
             <div className="mt-8">
