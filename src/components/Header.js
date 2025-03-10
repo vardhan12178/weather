@@ -83,7 +83,7 @@ const Header = ({ setLocation, toggleDarkMode, darkMode }) => {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Search for a city, e.g., Delhi ..."
+              placeholder="Search for a city ..."
               aria-label="Search for a city or location"
               className="w-full p-3 pl-10 pr-32 text-sm sm:text-base rounded-xl shadow-sm border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white bg-white/80 backdrop-blur-sm"
             />
