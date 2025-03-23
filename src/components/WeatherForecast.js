@@ -1,10 +1,20 @@
-import { useEffect, useState } from 'react';
+// src/components/WeatherForecast.js
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { motion } from 'framer-motion';
+
+// Utility function to convert wind direction (degrees) to cardinal direction
+const getWindDirection = (deg) => {
+  const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  const index = Math.round(deg / 45) % 8;
+  return directions[index];
+};
 
 const WeatherForecast = ({ location, coordinates, start, end, hoverEffect }) => {
   const [forecastData, setForecastData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showTooltip, setShowTooltip] = useState({});
 
   useEffect(() => {
     const fetchForecast = async () => {
@@ -33,14 +43,8 @@ const WeatherForecast = ({ location, coordinates, start, end, hoverEffect }) => 
     fetchForecast();
   }, [location, coordinates, start, end]);
 
-  const renderIcon = (iconCode) => {
-    return (
-      <img
-        src={`https://openweathermap.org/img/wn/${iconCode}@2x.png`}
-        alt="Weather icon"
-        className="w-16 h-16"
-      />
-    );
+  const toggleTooltip = (key) => {
+    setShowTooltip((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   const formatDate = (dateString) => {
@@ -51,13 +55,13 @@ const WeatherForecast = ({ location, coordinates, start, end, hoverEffect }) => 
   if (loading) return (
     <div className="text-center">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-      <p className="mt-2">Loading forecast...</p>
+      <p className="mt-2 text-gray-600 dark:text-gray-300 drop-shadow-sm">Loading forecast...</p>
     </div>
   );
 
   if (error) return (
-    <div className="text-center bg-red-100 dark:bg-red-900/20 p-4 rounded-lg">
-      <p className="text-red-500 dark:text-red-300">{error}</p>
+    <div className="text-center bg-red-100 bg-opacity-10 dark:bg-red-900 dark:bg-opacity-30 p-4 rounded-lg">
+      <p className="text-red-500 dark:text-red-300 drop-shadow-sm">{error}</p>
       <button
         onClick={() => window.location.reload()}
         className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -69,54 +73,76 @@ const WeatherForecast = ({ location, coordinates, start, end, hoverEffect }) => 
 
   if (!forecastData.length) return (
     <div className="text-center">
-      <p className="text-gray-500 dark:text-gray-400">No forecast data available.</p>
+      <p className="text-gray-500 dark:text-gray-400 drop-shadow-sm">No forecast data available.</p>
     </div>
   );
 
-  const cardClasses = `bg-white dark:bg-gray-800/30 backdrop-blur-md rounded-xl shadow-lg p-4 text-center text-gray-800 dark:text-white border border-white/10 dark:border-gray-700/20 ${
-    hoverEffect ? 'transform hover:scale-105 transition-transform duration-300 ease-in-out hover:shadow-xl' : ''
-  }`;
+  const containerClasses = `bg-white bg-opacity-10 dark:bg-gray-800 dark:bg-opacity-30 backdrop-blur-md rounded-xl shadow-lg p-4 sm:p-6 text-center text-gray-800 dark:text-white border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-all duration-300 flex flex-col items-center justify-center`;
 
   return (
-    <div className={cardClasses}>
-      {forecastData.map((day, index) => {
-        const { dt_txt, weather, main, wind } = day;
-        const { description, icon } = weather[0];
-        const { temp, feels_like } = main;
-        return (
-          <div key={index} className="mb-4">
-            {/* Date */}
-            <p className="text-sm sm:text-base font-semibold text-gray-700 dark:text-gray-200">
-              {formatDate(dt_txt)}
-            </p>
+    <div className={containerClasses}>
+      <div className="flex flex-row flex-wrap justify-center gap-6">
+        {forecastData.map((day, index) => {
+          const { dt_txt, weather, main, wind, pop } = day;
+          const { description, icon, main: condition } = weather[0];
+          const { temp, feels_like, humidity } = main;
+          const windDirection = getWindDirection(wind.deg);
 
-            {/* Weather Icon */}
-            <div className="my-3 flex justify-center items-center">
-              {renderIcon(icon)}
-            </div>
+          return (
+            <motion.div
+              key={dt_txt}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.1 }}
+              className={`flex flex-col items-center justify-center group relative ${
+                hoverEffect ? 'transform hover:scale-105 transition-all duration-300' : ''
+              }`}
+              onClick={() => toggleTooltip(dt_txt)}
+            >
+              {/* Date */}
+              <p className="text-lg font-semibold text-gray-700 dark:text-gray-200 font-poppins drop-shadow-sm">
+                {formatDate(dt_txt)}
+              </p>
 
-            {/* Weather Description */}
-            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 capitalize">
-              {description}
-            </p>
+              {/* Weather Icon */}
+              <img
+                src={`https://openweathermap.org/img/wn/${icon}@2x.png`}
+                alt={description}
+                className="w-16 h-16 my-2 drop-shadow-md"
+              />
 
-            {/* Temperature */}
-            <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-yellow-200 mt-2">
-              {temp}°C
-            </p>
+              {/* Weather Condition Label */}
+              <p className="text-sm text-gray-600 dark:text-gray-300 capitalize font-poppins drop-shadow-sm">
+                {condition === 'Clear' ? (icon.includes('d') ? 'Sunny' : 'Clear Night') : condition}
+              </p>
 
-            {/* Feels Like Temperature */}
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              Feels like {feels_like}°C
-            </p>
+              {/* Temperature */}
+              <p className="text-2xl font-bold text-blue-600 dark:text-yellow-200 font-poppins mt-2 drop-shadow-md">
+                {temp.toFixed(1)}°C
+              </p>
 
-            {/* Wind Speed */}
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              Wind: {wind.speed} m/s
-            </p>
-          </div>
-        );
-      })}
+              {/* Humidity */}
+              <p className="text-sm text-gray-600 dark:text-gray-300 font-poppins drop-shadow-sm">
+                Humidity: {humidity}%
+              </p>
+
+              {/* Precipitation Chance */}
+              <p className="text-sm text-gray-600 dark:text-gray-300 font-poppins drop-shadow-sm">
+                Rain: {Math.round(pop * 100)}%
+              </p>
+
+              {/* Tooltip for Feels Like, Wind Speed, and Wind Direction */}
+              <span
+                className={`absolute -top-10 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded transition-opacity pointer-events-none sm:group-hover:opacity-100 sm:opacity-0 ${
+                  showTooltip[dt_txt] ? 'opacity-100' : 'opacity-0'
+                }`}
+              >
+                Feels like: {feels_like.toFixed(1)}°C | Wind: {wind.speed} m/s {windDirection}
+              </span>
+            </motion.div>
+          );
+        })}
+      </div>
     </div>
   );
 };
