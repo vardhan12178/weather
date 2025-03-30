@@ -113,7 +113,8 @@ const HourlyTemperature = ({ lat, lon }) => {
               >
                 {/* Time */}
                 <p className="text-lg text-gray-700 dark:text-gray-300 font-poppins drop-shadow-sm">
-                  {new Date(dt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {new Date(dt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
+
                 </p>
 
                 {/* Weather Icon */}
