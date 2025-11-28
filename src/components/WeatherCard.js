@@ -1,229 +1,105 @@
-// src/components/WeatherCard.js
 import React, { useState } from 'react';
-import { WiThermometer, WiHumidity, WiStrongWind, WiSunrise, WiSunset, WiBarometer, WiHorizon } from 'react-icons/wi';
 import { motion } from 'framer-motion';
-import { RefreshCw } from 'react-feather';
+import { RefreshCw, Wind, Droplet } from 'react-feather';
 
-const WeatherCard = ({ weatherData, setCoordinates, opacityClass = 'bg-opacity-10' }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+const WeatherCard = ({ weatherData, aqi, setCoordinates }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [showTooltip, setShowTooltip] = useState({});
+  if (!weatherData) return null;
 
-  if (!weatherData) {
-    return <div className="text-center">Loading...</div>;
-  }
-
-  const { name, weather, main, wind, sys, dt, coord, visibility } = weatherData;
+  const { name, weather, main, wind, dt } = weatherData;
   const { main: description, icon } = weather[0];
-  const { temp, feels_like, humidity, pressure } = main;
+  const { temp, humidity } = main;
   const { speed: wind_speed } = wind;
-  const { sunrise, sunset } = sys;
-
-  const iconUrl = `https://openweathermap.org/img/wn/${icon}@2x.png`;
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    setCoordinates({ lat: coord.lat, lon: coord.lon });
+    if (setCoordinates && weatherData.coord) setCoordinates(weatherData.coord);
     setTimeout(() => setIsRefreshing(false), 1000);
   };
 
-  const toggleTooltip = (key) => {
-    setShowTooltip((prev) => ({ ...prev, [key]: !prev[key] }));
+  const getAQIStatus = (index) => {
+    switch (index) {
+      case 1: return { label: 'Good', color: 'bg-green-500 shadow-green-500/50' };
+      case 2: return { label: 'Fair', color: 'bg-yellow-500 shadow-yellow-500/50' };
+      case 3: return { label: 'Moderate', color: 'bg-orange-500 shadow-orange-500/50' };
+      case 4: return { label: 'Unhealthy', color: 'bg-red-500 shadow-red-500/50' };
+      case 5: return { label: 'Hazardous', color: 'bg-purple-500 shadow-purple-500/50' };
+      default: return { label: 'Unknown', color: 'bg-gray-500' };
+    }
   };
 
-  const iconClasses = "w-6 h-6 mr-2 text-blue-600 dark:text-yellow-200 transition-all duration-300 drop-shadow-md";
-  const detailCardClasses = `flex items-center justify-center bg-white bg-opacity-30 dark:bg-gray-800 dark:bg-opacity-30 rounded-lg p-3 backdrop-blur-sm hover:bg-white/40 dark:hover:bg-gray-700/40 transition-all duration-300 group relative border border-gray-200/50 dark:border-gray-700/50`;
+  const aqiStatus = getAQIStatus(aqi?.main?.aqi);
 
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: isRefreshing ? 0.5 : 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className={`relative bg-white ${opacityClass} dark:bg-gray-800 dark:${opacityClass} backdrop-blur-md rounded-xl shadow-lg p-6 sm:p-8 text-center text-gray-800 dark:text-white border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-all duration-300`}
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="flex flex-col items-center text-center w-full z-10 px-4"
     >
-      {/* Refresh Button */}
-      <button
-        onClick={handleRefresh}
-        className="absolute top-4 right-4 p-2 rounded-full bg-gray-100/90 dark:bg-gray-700/90 hover:bg-gray-200/90 dark:hover:bg-gray-600/90 transition-colors"
-        aria-label="Refresh weather data"
-      >
-        <RefreshCw
-          size={20}
-          className={`text-gray-600 dark:text-gray-300 ${isRefreshing ? 'animate-spin' : ''}`}
+      {/* 1. Header */}
+      <div className="flex flex-col items-center gap-4 sm:gap-6 mb-8 sm:mb-12 w-full">
+        <h1 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tighter text-gray-900 dark:text-white drop-shadow-sm leading-tight break-words max-w-full">
+          {name}
+        </h1>
+        
+        {aqi && (
+           <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-white text-xs sm:text-sm font-bold tracking-wide uppercase ${aqiStatus.color} shadow-lg backdrop-blur-sm whitespace-nowrap`}>
+             <span>AQI Level {aqi.main.aqi}</span>
+             <span>•</span>
+             <span>{aqiStatus.label}</span>
+           </div>
+        )}
+      </div>
+
+      {/* 2. Main Visual */}
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 relative w-full">
+        <motion.img
+          src={`https://openweathermap.org/img/wn/${icon}@4x.png`}
+          alt={description}
+          className="w-40 h-40 sm:w-56 sm:h-56 drop-shadow-2xl object-contain filter dark:brightness-125 dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+          animate={{ y: [0, -20, 0] }}
+          transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
         />
-      </button>
-
-      {/* Location */}
-      <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 text-gray-900 dark:text-white font-poppins drop-shadow-md">
-        {name || 'Unknown Location'}
-      </h2>
-
-      {/* Weather Icon */}
-      <motion.img
-        src={iconUrl}
-        alt={description}
-        className="mx-auto w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 mb-4 drop-shadow-md"
-        whileHover={{ scale: 1.1 }}
-        transition={{ duration: 0.3 }}
-      />
-
-      {/* Weather Description */}
-      <p className="text-lg sm:text-xl lg:text-2xl capitalize mb-4 text-gray-700 dark:text-gray-200 font-poppins drop-shadow-md">
-        {description}
-      </p>
-
-      {/* Temperature */}
-      <p className="text-4xl sm:text-5xl lg:text-6xl font-bold text-blue-600 dark:text-yellow-200 mb-6 font-poppins drop-shadow-md">
-        {temp.toFixed(1)}<span className="text-2xl sm:text-3xl lg:text-4xl">°C</span>
-      </p>
-
-      {/* Additional Weather Details */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-lg">
-        {/* RealFeel */}
-        <div
-          className={detailCardClasses}
-          aria-label="RealFeel Temperature"
-          onClick={() => toggleTooltip('realfeel')}
-        >
-          <WiThermometer className={iconClasses} />
-          <div>
-            <p className="font-semibold text-gray-800 dark:text-gray-200 font-poppins drop-shadow-sm">RealFeel</p>
-            <p className="text-gray-700 dark:text-gray-300 drop-shadow-sm">{feels_like.toFixed(1)}°C</p>
+        
+        <div className="flex flex-col items-center sm:items-start">
+          {/* TEMP DISPLAY WITH BETTER ALIGNMENT */}
+          <div className="flex items-start">
+            <span className="text-7xl sm:text-9xl md:text-[8rem] leading-none font-black text-transparent bg-clip-text bg-gradient-to-br from-gray-800 to-gray-500 dark:from-white dark:to-white/50">
+              {Math.round(temp)}
+            </span>
+            {/* Grouped °C together for better kerning */}
+            <span className="text-3xl sm:text-5xl font-bold text-gray-700 dark:text-white mt-2 sm:mt-4 ml-1 opacity-80">
+              °C
+            </span>
           </div>
-          <span
-            className={`absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded transition-opacity pointer-events-none sm:group-hover:opacity-100 sm:opacity-0 ${
-              showTooltip['realfeel'] ? 'opacity-100' : 'opacity-0'
-            }`}
-          >
-            How the temperature feels
-          </span>
-        </div>
-
-        {/* Humidity */}
-        <div
-          className={detailCardClasses}
-          aria-label="Humidity"
-          onClick={() => toggleTooltip('humidity')}
-        >
-          <WiHumidity className={iconClasses} />
-          <div>
-            <p className="font-semibold text-gray-800 dark:text-gray-200 font-poppins drop-shadow-sm">Humidity</p>
-            <p className="text-gray-700 dark:text-gray-300 drop-shadow-sm">{humidity}%</p>
-          </div>
-          <span
-            className={`absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded transition-opacity pointer-events-none sm:group-hover:opacity-100 sm:opacity-0 ${
-              showTooltip['humidity'] ? 'opacity-100' : 'opacity-0'
-            }`}
-          >
-            Moisture in the air
-          </span>
-        </div>
-
-        {/* Wind Speed */}
-        <div
-          className={detailCardClasses}
-          aria-label="Wind Speed"
-          onClick={() => toggleTooltip('wind')}
-        >
-          <WiStrongWind className={iconClasses} />
-          <div>
-            <p className="font-semibold text-gray-800 dark:text-gray-200 font-poppins drop-shadow-sm">Wind</p>
-            <p className="text-gray-700 dark:text-gray-300 drop-shadow-sm">{wind_speed.toFixed(1)} m/s</p>
-          </div>
-          <span
-            className={`absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded transition-opacity pointer-events-none sm:group-hover:opacity-100 sm:opacity-0 ${
-              showTooltip['wind'] ? 'opacity-100' : 'opacity-0'
-            }`}
-          >
-            Wind speed
+          
+          <span className="text-2xl sm:text-3xl font-medium text-gray-600 dark:text-blue-100 capitalize mt-[-5px] sm:mt-[-10px]">
+            {description}
           </span>
         </div>
       </div>
 
-      {/* Collapsible Additional Details */}
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="mt-4 text-blue-600 dark:text-yellow-200 hover:underline font-poppins drop-shadow-sm"
-      >
-        {isExpanded ? 'Hide Details' : 'Show More Details'}
-      </button>
+      {/* 3. Stats */}
+      <div className="flex items-center gap-4 sm:gap-8 mt-8 sm:mt-12 bg-white/40 dark:bg-black/30 px-6 sm:px-8 py-2 sm:py-3 rounded-full backdrop-blur-md border border-white/20 dark:border-white/5 shadow-sm max-w-full overflow-hidden">
+         <div className="flex items-center gap-2 text-gray-700 dark:text-blue-100">
+           <Wind size={16} className="sm:w-[18px]" />
+           <span className="font-bold text-sm sm:text-base whitespace-nowrap">{wind_speed} m/s</span>
+         </div>
+         <div className="w-px h-4 bg-gray-400 dark:bg-white/20"></div>
+         <div className="flex items-center gap-2 text-gray-700 dark:text-blue-100">
+           <Droplet size={16} className="sm:w-[18px]" />
+           <span className="font-bold text-sm sm:text-base whitespace-nowrap">{humidity}%</span>
+         </div>
+         <div className="w-px h-4 bg-gray-400 dark:bg-white/20"></div>
+         <button onClick={handleRefresh} className={`${isRefreshing ? 'animate-spin' : ''} p-1`}>
+           <RefreshCw size={16} className="text-gray-700 dark:text-blue-100 sm:w-[18px]" />
+         </button>
+      </div>
 
-      {isExpanded && (
-        <motion.div
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: 'auto', opacity: 1 }}
-          transition={{ duration: 0.3 }}
-          className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-lg"
-        >
-          {/* Sunrise */}
-          <div className={detailCardClasses} aria-label="Sunrise Time">
-            <WiSunrise className={iconClasses} />
-            <div>
-              <p className="font-semibold text-gray-800 dark:text-gray-200 font-poppins drop-shadow-sm">Sunrise</p>
-              <p className="text-gray-700 dark:text-gray-300 drop-shadow-sm">
-                {new Date(sunrise * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </p>
-            </div>
-          </div>
-
-          {/* Sunset */}
-          <div className={detailCardClasses} aria-label="Sunset Time">
-            <WiSunset className={iconClasses} />
-            <div>
-              <p className="font-semibold text-gray-800 dark:text-gray-200 font-poppins drop-shadow-sm">Sunset</p>
-              <p className="text-gray-700 dark:text-gray-300 drop-shadow-sm">
-                {new Date(sunset * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </p>
-            </div>
-          </div>
-
-          {/* Pressure */}
-          <div
-            className={detailCardClasses}
-            aria-label="Pressure"
-            onClick={() => toggleTooltip('pressure')}
-          >
-            <WiBarometer className={iconClasses} />
-            <div>
-              <p className="font-semibold text-gray-800 dark:text-gray-200 font-poppins drop-shadow-sm">Pressure</p>
-              <p className="text-gray-700 dark:text-gray-300 drop-shadow-sm">{pressure} hPa</p>
-            </div>
-            <span
-              className={`absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded transition-opacity pointer-events-none sm:group-hover:opacity-100 sm:opacity-0 ${
-                showTooltip['pressure'] ? 'opacity-100' : 'opacity-0'
-              }`}
-            >
-              Atmospheric pressure
-            </span>
-          </div>
-
-          {/* Visibility */}
-          <div
-            className={detailCardClasses}
-            aria-label="Visibility"
-            onClick={() => toggleTooltip('visibility')}
-          >
-            <WiHorizon className={iconClasses} />
-            <div>
-              <p className="font-semibold text-gray-800 dark:text-gray-200 font-poppins drop-shadow-sm">Visibility</p>
-              <p className="text-gray-700 dark:text-gray-300 drop-shadow-sm">{(visibility / 1000).toFixed(1)} km</p>
-            </div>
-            <span
-              className={`absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded transition-opacity pointer-events-none sm:group-hover:opacity-100 sm:opacity-0 ${
-                showTooltip['visibility'] ? 'opacity-100' : 'opacity-0'
-              }`}
-            >
-              Distance you can see
-            </span>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Last Updated Timestamp */}
-      <p className="text-sm text-gray-800 dark:text-gray-200 mt-4 font-poppins bg-white bg-opacity-30 dark:bg-gray-800 dark:bg-opacity-30 rounded-full px-3 py-1 inline-block drop-shadow-sm">
-        Last updated: {new Date(dt * 1000).toLocaleTimeString()}
+      <p className="mt-6 text-gray-500 dark:text-white/40 font-medium tracking-wide uppercase text-xs">
+        {new Date(dt * 1000).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
       </p>
-    </motion.section>
+    </motion.div>
   );
 };
 

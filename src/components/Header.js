@@ -1,32 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, MapPin, X, Sun, Moon } from 'react-feather';
 import VoiceSearch from './VoiceSearch';
+import RecentSearches from './RecentSearches';
 
 const popularCities = [
   'New York', 'London', 'Tokyo', 'Paris', 'Sydney',
   'Mumbai', 'Berlin', 'Moscow', 'Beijing', 'São Paulo'
 ];
 
-const DarkModeToggle = ({ toggleDarkMode, darkMode }) => (
-  <button
-    type="button"
-    onClick={toggleDarkMode}
-    className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-    aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-  >
-    {darkMode ? <Sun size={20} className="text-yellow-400" /> : <Moon size={20} className="text-gray-600" />}
-  </button>
-);
-
-const Header = ({ setLocation, setCoordinates, toggleDarkMode, darkMode }) => {
+const Header = ({ setLocation, setCoordinates, darkMode }) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGeolocationLoading, setIsGeolocationLoading] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [recentSearches, setRecentSearches] = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [activeSuggestion, setActiveSuggestion] = useState(-1);
+  const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef();
 
   useEffect(() => {
@@ -39,11 +28,9 @@ const Header = ({ setLocation, setCoordinates, toggleDarkMode, darkMode }) => {
       const filtered = [...new Set([...recentSearches, ...popularCities])]
         .filter(city => city.toLowerCase().includes(input.toLowerCase()));
       setSuggestions(filtered.slice(0, 5));
-      setShowSuggestions(filtered.length > 0);
     } else {
-      setShowSuggestions(false);
+      setSuggestions([]);
     }
-    setActiveSuggestion(-1);
   }, [input, recentSearches]);
 
   const updateRecent = city => {
@@ -54,39 +41,19 @@ const Header = ({ setLocation, setCoordinates, toggleDarkMode, darkMode }) => {
 
   const handleSubmit = e => {
     e.preventDefault();
-    const city = input.trim();
-    if (city && /^[a-zA-Z\s,]+$/.test(city)) {
+    handleSearch(input);
+  };
+
+  const handleSearch = (city) => {
+    const term = city.trim();
+    if (term && /^[a-zA-Z\s,]+$/.test(term)) {
       setIsLoading(true);
-      setLocation(city);
-      updateRecent(city);
+      setLocation(term);
+      updateRecent(term);
       setInput('');
-      setShowSuggestions(false);
+      setIsFocused(false);
       setIsLoading(false);
       setIsSearchOpen(false);
-    }
-  };
-
-  const handleSuggestionClick = city => {
-    setLocation(city);
-    updateRecent(city);
-    setInput('');
-    setShowSuggestions(false);
-    setIsSearchOpen(false);
-  };
-
-  const handleKeyDown = e => {
-    if (!showSuggestions) return;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setActiveSuggestion(prev => (prev + 1) % suggestions.length);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setActiveSuggestion(prev => (prev - 1 + suggestions.length) % suggestions.length);
-    } else if (e.key === 'Enter') {
-      if (activeSuggestion >= 0) {
-        e.preventDefault();
-        handleSuggestionClick(suggestions[activeSuggestion]);
-      }
     }
   };
 
@@ -103,110 +70,132 @@ const Header = ({ setLocation, setCoordinates, toggleDarkMode, darkMode }) => {
     }
   };
 
+  // Logic to determine if dropdown should show
+  const showDropdown = isFocused && (suggestions.length > 0 || (!input && recentSearches.length > 0));
+
   return (
-    <header className="sticky top-0 z-50">
-      <nav className="bg-white bg-opacity-10 dark:bg-gray-800 dark:bg-opacity-30 backdrop-blur-md shadow-lg border-b border-gray-200/50 dark:border-gray-700/50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
-            <div className="flex items-center space-x-3">
-              <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-              <h1 className={`font-poppins text-gray-800 dark:text-white transition-all duration-300 ${isSearchOpen ? 'text-lg' : 'text-2xl sm:text-3xl'} font-bold`}>Weatherly</h1>
+    <header className="relative z-50 w-full pt-6 px-4 lg:px-8">
+      <nav className="w-full flex items-center justify-between h-16">
+        
+        {/* DYNAMIC LOGO SECTION */}
+        <div className="flex items-center space-x-3 cursor-pointer group">
+          {/* Icon changes based on Day/Night */}
+          <div className={`p-2.5 rounded-xl shadow-lg transition-all duration-500 ${
+            darkMode 
+              ? 'bg-indigo-900/50 shadow-indigo-500/20 text-indigo-200' // Night Style
+              : 'bg-orange-100 shadow-orange-500/20 text-orange-500'    // Day Style
+          }`}>
+              {darkMode ? (
+                <Moon className="w-6 h-6 fill-current" />
+              ) : (
+                <Sun className="w-6 h-6 fill-current" />
+              )}
+          </div>
+          <h1 className="font-sans text-2xl font-black tracking-tight text-gray-900 dark:text-white drop-shadow-sm">
+            Weatherly
+          </h1>
+        </div>
+
+        {/* Desktop Search Bar */}
+        <form onSubmit={handleSubmit} className="hidden md:flex items-center relative w-full max-w-lg mx-auto group">
+          <div className="relative w-full transition-transform duration-300 group-focus-within:scale-105">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 group-focus-within:text-blue-500 transition-colors" size={18} />
+            <input
+              ref={inputRef}
+              type="text"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setTimeout(() => setIsFocused(false), 200)} 
+              placeholder="Search city..."
+              className="w-full py-3 pl-12 pr-14 rounded-full bg-white/80 dark:bg-black/30 border border-white/20 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 backdrop-blur-xl shadow-lg transition-all"
+            />
+            
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
+              {input && (
+                <button type="button" onClick={() => setInput('')} className="text-gray-500 hover:text-gray-800 dark:hover:text-white">
+                  <X size={16} />
+                </button>
+              )}
+              <div className="border-l border-gray-300 dark:border-white/10 pl-2">
+                <VoiceSearch setLocation={handleSearch} />
+              </div>
             </div>
-            <form onSubmit={handleSubmit} className="hidden md:flex items-center space-x-3 flex-1 w-full max-w-lg mx-4 relative">
-              <div className="relative w-full">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={input}
-                  onChange={e => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Search for a city..."
-                  aria-label="Search for a city or location"
-                  className="w-full p-3 pl-10 pr-20 text-sm sm:text-base rounded-full shadow-sm border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white bg-white/80 backdrop-blur-sm transition-all duration-300"
-                />
-                <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
-                  <VoiceSearch setLocation={setLocation} />
-                </div>
-                {input && (
-                  <button type="button" onClick={() => setInput('')} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600" aria-label="Clear search input">
-                    <X size={20} />
-                  </button>
-                )}
-                {showSuggestions && (
-                  <ul className="absolute z-10 w-full bg-white dark:bg-gray-700 rounded-md shadow max-h-60 overflow-auto mt-1">
+
+            {/* UNIFIED DROPDOWN */}
+            {showDropdown && (
+              <div className="absolute z-50 w-full mt-4 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 overflow-hidden animate-in fade-in slide-in-from-top-2 p-2">
+                {input && suggestions.length > 0 && (
+                  <ul>
                     {suggestions.map((city, idx) => (
                       <li
                         key={city}
-                        onMouseDown={() => handleSuggestionClick(city)}
-                        className={`px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 ${activeSuggestion === idx ? 'bg-gray-100 dark:bg-gray-600' : ''}`}
+                        onClick={() => handleSearch(city)}
+                        className="px-4 py-3 cursor-pointer flex items-center space-x-3 hover:bg-blue-500/10 rounded-xl transition-colors"
                       >
-                        {city}
+                        <MapPin size={16} className="text-gray-400" />
+                        <span className="text-gray-800 dark:text-gray-200 font-medium">{city}</span>
                       </li>
                     ))}
                   </ul>
                 )}
+                {!input && recentSearches.length > 0 && (
+                  <div className="p-2">
+                      <RecentSearches searches={recentSearches} onSearch={handleSearch} />
+                  </div>
+                )}
               </div>
-              <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 transition-transform hover:scale-105 flex items-center" disabled={isLoading}>
-                {isLoading ? <svg className="animate-spin h-5 w-5 mr-2 text-white" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg> : 'Search'}
-              </button>
-            </form>
-            <div className="hidden md:flex items-center space-x-4">
-              <button onClick={fetchCurrentLocation} className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors" aria-label="Use my location" disabled={isGeolocationLoading}>
-                {isGeolocationLoading ? <svg className="animate-spin h-5 w-5 text-gray-600 dark:text-gray-300" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg> : <MapPin size={20} className="text-gray-600 dark:text-gray-300"/>}
-              </button>
-              <DarkModeToggle toggleDarkMode={toggleDarkMode} darkMode={darkMode} />
-            </div>
-            <div className="md:hidden flex items-center space-x-3"> 
-              {!isSearchOpen ? (
-                <>                
-                  <button onClick={() => setIsSearchOpen(true)} aria-label="Open search">
-                    <Search size={24} className="text-gray-600 dark:text-gray-300" />
-                  </button>
-                  <button onClick={fetchCurrentLocation} className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600" aria-label="Use my location" disabled={isGeolocationLoading}>
-                    {isGeolocationLoading ? <svg className="animate-spin h-5 w-5 text-gray-600 dark:text-gray-300" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg> : <MapPin size={20} className="text-gray-600 dark:text-gray-300"/>}
-                  </button>
-                  <DarkModeToggle toggleDarkMode={toggleDarkMode} darkMode={darkMode} />
-                </>
-              ) : null}
-            </div>
+            )}
           </div>
-         {isSearchOpen && (
-  <div className="md:hidden p-4 bg-white bg-opacity-10 dark:bg-gray-800 dark:bg-opacity-30 backdrop-blur-md">
-    <form onSubmit={handleSubmit} className="relative flex items-center">
-      <Search
-        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-        size={20}
-      />
-      <input
-        type="text"
-        value={input}
-        onChange={e => setInput(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="Search for a city..."
-        aria-label="Search for a city or location"
-        autoFocus
-        className="w-full p-3 pl-10 pr-12 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white bg-opacity-20 dark:bg-gray-700 dark:bg-opacity-20 backdrop-blur-sm text-gray-800 dark:text-white"
-      />
-      <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
-        <VoiceSearch setLocation={setLocation} />
-      </div>
-      <button
-        type="button"
-        onClick={() => setIsSearchOpen(false)}
-        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-        aria-label="Close search"
-      >
-        <X size={20} />
-      </button>
-    </form>
-  </div>
-)}
+        </form>
 
+        {/* Desktop Actions */}
+        <div className="hidden md:flex items-center space-x-4">
+          <button 
+            onClick={fetchCurrentLocation} 
+            className="p-3 rounded-full bg-black/5 dark:bg-white/10 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 text-gray-700 dark:text-white transition-all shadow-sm backdrop-blur-md group"
+            title="Use my location"
+            disabled={isGeolocationLoading}
+          >
+              {isGeolocationLoading ? (
+                <div className="animate-spin w-5 h-5 border-2 border-current border-t-transparent rounded-full" />
+              ) : (
+                <MapPin size={20} className="group-hover:scale-110 transition-transform" />
+              )}
+          </button>
+        </div>
+
+        {/* Mobile Toggle */}
+        <div className="md:hidden flex items-center space-x-3">
+          <button onClick={() => setIsSearchOpen(!isSearchOpen)} className="p-2 text-gray-800 dark:text-white bg-white/10 rounded-full backdrop-blur-md">
+            {isSearchOpen ? <X size={24} /> : <Search size={24} />}
+          </button>
         </div>
       </nav>
+
+      {/* Mobile Search Expand */}
+      {isSearchOpen && (
+        <div className="md:hidden pt-4 pb-2 px-1 animate-in slide-in-from-top-5 fade-in">
+          <form onSubmit={handleSubmit} className="relative">
+            <input
+              type="text"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              placeholder="Search city..."
+              className="w-full p-4 pl-5 pr-12 rounded-2xl bg-white/80 dark:bg-black/40 border border-white/20 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-xl backdrop-blur-xl"
+              autoFocus
+            />
+            <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                <VoiceSearch setLocation={handleSearch} />
+            </div>
+          </form>
+          {!input && recentSearches.length > 0 && (
+             <div className="mt-4 px-2">
+                <RecentSearches searches={recentSearches} onSearch={handleSearch} />
+             </div>
+          )}
+        </div>
+      )}
     </header>
   );
 };

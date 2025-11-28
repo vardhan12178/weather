@@ -1,37 +1,29 @@
-// src/components/Footer.js
 import React from 'react';
+import { Heart } from 'react-feather';
 
 const Footer = () => {
-  const currentYear = new Date().getFullYear(); // Dynamically set the year
-
   return (
-    <footer className="w-full py-4 mt-8 bg-white bg-opacity-10 dark:bg-gray-800 dark:bg-opacity-30 backdrop-blur-md border-t border-gray-200/50 dark:border-gray-700/50 shadow-lg">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col items-center justify-between sm:flex-row gap-4">
-          {/* Copyright Notice */}
-          <p className="text-center text-sm text-gray-800 dark:text-gray-200 font-poppins drop-shadow-sm transition-all duration-300">
-            ©{' '}
-            <a
-              href="https://github.com/bala-vardhan" // Replace with your portfolio or GitHub link
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-blue-600 dark:hover:text-yellow-200"
-            >
-              Bala Vardhan
-            </a>{' '}
-            {currentYear}
-          </p>
+    <footer className="w-full py-6 text-center z-50 flex justify-center">
+      {/* Glass Pill Container */}
+      <div className="inline-flex items-center justify-center space-x-3 px-4 py-2 rounded-full bg-white/40 dark:bg-black/20 backdrop-blur-md border border-white/20 dark:border-white/5 shadow-sm">
+        
+        <span className="text-[10px] uppercase tracking-widest text-gray-800 dark:text-white/40 font-bold">
+          © 2025 Weatherly
+        </span>
+        
+        <span className="text-gray-400 dark:text-white/20">•</span>
+        
+        <span className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-gray-800 dark:text-white/40 font-bold">
+          Made with <Heart size={10} className="text-red-500 fill-current" /> by Bala Vardhan
+        </span>
+        
+        <span className="text-gray-400 dark:text-white/20">•</span>
+        
+        <span className="text-[10px] uppercase tracking-widest text-gray-800 dark:text-white/40 font-bold">
+          OpenWeatherMap
+        </span>
 
-            <a
-              href="https://openweathermap.org/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-gray-800 dark:text-gray-200 font-poppins drop-shadow-sm hover:text-blue-600 dark:hover:text-yellow-200 transition-all duration-300"
-            >
-              Powered by OpenWeatherMap
-            </a>
-          </div>
-        </div>
+      </div>
     </footer>
   );
 };
