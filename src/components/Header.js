@@ -4,8 +4,8 @@ import VoiceSearch from './VoiceSearch';
 import RecentSearches from './RecentSearches';
 
 const popularCities = [
-  'New York', 'London', 'Tokyo', 'Paris', 'Sydney',
-  'Mumbai', 'Berlin', 'Moscow', 'Beijing', 'São Paulo'
+  'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai',
+  'Kolkata', 'Pune', 'Ahmedabad', 'Jaipur', 'Surat'
 ];
 
 const Header = ({ setLocation, setCoordinates, darkMode }) => {
