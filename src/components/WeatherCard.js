@@ -35,14 +35,17 @@ const WeatherCard = ({ weatherData, aqi, setCoordinates }) => {
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5 }}
-      className="flex flex-col items-center justify-center text-center w-full z-10 px-4 py-6"
+      // FIX: Reduced vertical padding (py-6 -> py-2 sm:py-6) to save space
+      className="flex flex-col items-center justify-center text-center w-full z-10 px-2 sm:px-4 py-2 sm:py-6"
     >
       {/* 1. CITY NAME & DATE */}
-      <div className="flex flex-col items-center gap-2 mb-6">
-        <h1 className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tighter text-slate-800 dark:text-white drop-shadow-sm leading-tight text-center">
+      {/* FIX: Reduced bottom margin (mb-6 -> mb-2 sm:mb-6) */}
+      <div className="flex flex-col items-center gap-1 sm:gap-2 mb-2 sm:mb-6">
+        {/* FIX: Reduced text size (text-4xl -> text-3xl) for small screens */}
+        <h1 className="text-3xl sm:text-5xl md:text-7xl font-black tracking-tighter text-slate-800 dark:text-white drop-shadow-sm leading-tight text-center">
           {name}
         </h1>
-        <p className="text-slate-600 dark:text-blue-200 font-bold tracking-widest uppercase text-xs">
+        <p className="text-slate-600 dark:text-blue-200 font-bold tracking-widest uppercase text-[10px] sm:text-xs">
           {new Date(dt * 1000).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
         </p>
       </div>
@@ -52,7 +55,8 @@ const WeatherCard = ({ weatherData, aqi, setCoordinates }) => {
         <motion.div 
           initial={{ y: 10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-black tracking-wider uppercase ${aqiStatus.color} shadow-lg mb-8`}
+          // FIX: Reduced bottom margin (mb-8 -> mb-4 sm:mb-8)
+          className={`flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-black tracking-wider uppercase ${aqiStatus.color} shadow-lg mb-4 sm:mb-8`}
         >
           <span>AQI: {aqi.main.aqi}</span>
           <span className="w-1 h-1 bg-white rounded-full opacity-50"></span>
@@ -61,15 +65,17 @@ const WeatherCard = ({ weatherData, aqi, setCoordinates }) => {
       )}
 
       {/* 3. MAIN VISUAL (Icon + Temp) */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-10 relative w-full mb-10">
+      {/* FIX: Reduced bottom margin (mb-10 -> mb-6) */}
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-0 sm:gap-10 relative w-full mb-6 sm:mb-10">
         
         {/* Animated Icon with Glow */}
         <div className="relative">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-white/40 blur-3xl rounded-full"></div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 sm:w-32 sm:h-32 bg-white/40 blur-3xl rounded-full"></div>
             <motion.img
               src={`https://openweathermap.org/img/wn/${icon}@4x.png`}
               alt={description}
-              className="relative w-48 h-48 sm:w-64 sm:h-64 object-contain drop-shadow-[0_15px_15px_rgba(0,0,0,0.25)] z-10"
+              // FIX: MASSIVE REDUCTION in size (w-48 -> w-32) for mobile
+              className="relative w-32 h-32 sm:w-56 sm:h-56 md:w-64 md:h-64 object-contain drop-shadow-[0_15px_15px_rgba(0,0,0,0.25)] z-10"
               animate={{ y: [0, -15, 0] }}
               transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
             />
@@ -78,54 +84,56 @@ const WeatherCard = ({ weatherData, aqi, setCoordinates }) => {
         {/* Temperature & Description */}
         <div className="flex flex-col items-center sm:items-start z-10">
           <div className="flex items-start">
-            <span className="text-8xl sm:text-9xl md:text-[9rem] leading-none font-black text-slate-800 dark:text-white tracking-tighter drop-shadow-sm">
+            {/* FIX: Reduced font size (text-8xl -> text-6xl) for mobile */}
+            <span className="text-6xl sm:text-8xl md:text-[9rem] leading-none font-black text-slate-800 dark:text-white tracking-tighter drop-shadow-sm">
               {Math.round(temp)}
             </span>
-            {/* ADDED 'C' BACK HERE */}
-            <span className="text-4xl sm:text-6xl font-bold text-slate-600 dark:text-blue-200 mt-4 sm:mt-6">
+            {/* FIX: Adjusted degree symbol size and position */}
+            <span className="text-2xl sm:text-6xl font-bold text-slate-600 dark:text-blue-200 mt-2 sm:mt-6">
               °C
             </span>
           </div>
-          <span className="text-2xl sm:text-3xl font-bold text-slate-600 dark:text-blue-100 capitalize -mt-2">
+          <span className="text-xl sm:text-3xl font-bold text-slate-600 dark:text-blue-100 capitalize -mt-1 sm:-mt-2">
             {description}
           </span>
         </div>
       </div>
 
       {/* 4. STATS CONTROL BAR */}
-      <div className="flex items-center gap-6 sm:gap-10 bg-white/40 dark:bg-black/30 px-8 py-4 rounded-3xl backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-lg hover:scale-105 transition-transform duration-300">
+      {/* FIX: Reduced Padding (px-8 -> px-4) to prevent overflow on very narrow phones */}
+      <div className="flex items-center gap-4 sm:gap-10 bg-white/40 dark:bg-black/30 px-4 sm:px-8 py-3 sm:py-4 rounded-3xl backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-lg hover:scale-105 transition-transform duration-300">
           
           {/* Wind */}
           <div className="flex flex-col items-center gap-1">
              <div className="flex items-center gap-2 text-slate-700 dark:text-blue-200">
-                <Wind size={18} />
-                <span className="font-black text-lg">{wind_speed}</span>
+                <Wind size={16} className="sm:w-[18px]" />
+                <span className="font-black text-sm sm:text-lg">{wind_speed}</span>
              </div>
-             <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-white/40 tracking-wider">Wind (m/s)</span>
+             <span className="text-[9px] sm:text-[10px] font-bold uppercase text-slate-500 dark:text-white/40 tracking-wider">Wind</span>
           </div>
 
-          <div className="w-px h-8 bg-slate-900/10 dark:bg-white/10"></div>
+          <div className="w-px h-6 sm:h-8 bg-slate-900/10 dark:bg-white/10"></div>
 
           {/* Humidity */}
           <div className="flex flex-col items-center gap-1">
              <div className="flex items-center gap-2 text-slate-700 dark:text-blue-200">
-                <Droplet size={18} />
-                <span className="font-black text-lg">{humidity}%</span>
+                <Droplet size={16} className="sm:w-[18px]" />
+                <span className="font-black text-sm sm:text-lg">{humidity}%</span>
              </div>
-             <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-white/40 tracking-wider">Humidity</span>
+             <span className="text-[9px] sm:text-[10px] font-bold uppercase text-slate-500 dark:text-white/40 tracking-wider">Humidity</span>
           </div>
 
-          <div className="w-px h-8 bg-slate-900/10 dark:bg-white/10"></div>
+          <div className="w-px h-6 sm:h-8 bg-slate-900/10 dark:bg-white/10"></div>
 
           {/* Refresh Button */}
           <button 
             onClick={handleRefresh} 
             className="flex flex-col items-center gap-1 group"
           >
-             <div className={`p-2 rounded-full bg-white/50 dark:bg-white/10 group-hover:bg-white group-hover:text-blue-500 transition-colors ${isRefreshing ? 'animate-spin' : ''}`}>
-                <RefreshCw size={18} className="text-slate-800 dark:text-white group-hover:text-blue-600" />
+             <div className={`p-1.5 sm:p-2 rounded-full bg-white/50 dark:bg-white/10 group-hover:bg-white group-hover:text-blue-500 transition-colors ${isRefreshing ? 'animate-spin' : ''}`}>
+                <RefreshCw size={16} className="sm:w-[18px] text-slate-800 dark:text-white group-hover:text-blue-600" />
              </div>
-             <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-white/40 tracking-wider group-hover:text-blue-600">Refresh</span>
+             <span className="text-[9px] sm:text-[10px] font-bold uppercase text-slate-500 dark:text-white/40 tracking-wider group-hover:text-blue-600">Refresh</span>
           </button>
       </div>
 

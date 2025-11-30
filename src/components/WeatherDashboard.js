@@ -27,7 +27,7 @@ const WeatherDashboard = ({
         darkMode={darkMode}
       />
 
-      {/* MAIN: overflow-y-auto allows scrolling when content is too tall (Mobile) */}
+      {/* MAIN: Adjusted flex properties for better vertical centering on small screens */}
       <main className="flex-grow w-full relative overflow-y-auto overflow-x-hidden flex flex-col items-center">
         
         {/* State 1: Loading */}
@@ -49,7 +49,11 @@ const WeatherDashboard = ({
         {!loading && !error && weatherData && (
           <div className="flex flex-col w-full max-w-[1600px] items-center">
             
-            <div className="grid grid-cols-1 lg:grid-cols-12 w-full gap-6 p-4 lg:p-6 animate-in fade-in duration-500">
+            {/* LAYOUT FIX: 
+                - Reduced 'gap-6' to 'gap-3 sm:gap-6' to save vertical space on mobile.
+                - Reduced 'p-4' to 'p-2 sm:p-4' to widen the usable area on small screens.
+            */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 w-full gap-3 sm:gap-6 p-2 sm:p-4 lg:p-6 animate-in fade-in duration-500">
               
               {/* COLUMN 1: LEFT SIDEBAR (Desktop Only) */}
               <div className="hidden lg:flex lg:col-span-3 flex-col justify-center h-full pt-10">
@@ -57,10 +61,13 @@ const WeatherDashboard = ({
               </div>
 
               {/* COLUMN 2: CENTER STAGE */}
-              <div className="col-span-1 lg:col-span-6 flex flex-col items-center justify-start lg:justify-center relative mt-4 lg:mt-0">
+              {/* LAYOUT FIX: 
+                 - Changed 'mt-4' to 'mt-1 sm:mt-4' to pull the card higher on mobile.
+              */}
+              <div className="col-span-1 lg:col-span-6 flex flex-col items-center justify-start lg:justify-center relative mt-1 sm:mt-4 lg:mt-0">
                  
-                 {/* ALERTS: Relative on Mobile (pushes content down), Absolute on Desktop */}
-                 <div className="w-full max-w-md z-50 mb-6 lg:mb-0 lg:absolute lg:top-0">
+                 {/* ALERTS: Optimized margin */}
+                 <div className="w-full max-w-md z-50 mb-2 lg:mb-0 lg:absolute lg:top-0">
                     <WeatherAlerts weatherData={weatherData} />
                  </div>
 
@@ -72,8 +79,8 @@ const WeatherDashboard = ({
                  <HourlyTemperature lat={coordinates.lat} lon={coordinates.lon} />
               </div>
 
-              {/* MOBILE SPECIFIC SECTION (Visible only on small screens) */}
-              <div className="lg:hidden col-span-1 flex flex-col gap-10 w-full px-1 mt-8">
+              {/* MOBILE SPECIFIC SECTION */}
+              <div className="lg:hidden col-span-1 flex flex-col gap-8 w-full px-1 mt-6 pb-6">
                  
                  {/* 1. Hourly Trends */}
                  <div className="w-full">
@@ -85,11 +92,16 @@ const WeatherDashboard = ({
                     <WeatherForecast location={location} coordinates={coordinates} />
                  </div>
 
+                 {/* MOVED FOOTER HERE FOR MOBILE SCROLL FLOW */}
+                 <div className="w-full mt-4">
+                    <Footer />
+                 </div>
+
               </div>
             </div>
 
-            {/* FOOTER: Now inside the scrollable area, at the very bottom */}
-            <div className="w-full mt-10 mb-6">
+            {/* DESKTOP FOOTER (Hidden on mobile to avoid double footer if you move it above) */}
+            <div className="hidden lg:block w-full mt-10 mb-6">
                 <Footer />
             </div>
 
