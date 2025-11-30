@@ -49,10 +49,7 @@ const WeatherDashboard = ({
         {!loading && !error && weatherData && (
           <div className="flex flex-col w-full max-w-[1600px] items-center">
             
-            {/* LAYOUT FIX: 
-                - Reduced 'gap-6' to 'gap-3 sm:gap-6' to save vertical space on mobile.
-                - Reduced 'p-4' to 'p-2 sm:p-4' to widen the usable area on small screens.
-            */}
+            {/* LAYOUT FIX: Preserved your mobile optimizations (gap-3, p-2) */}
             <div className="grid grid-cols-1 lg:grid-cols-12 w-full gap-3 sm:gap-6 p-2 sm:p-4 lg:p-6 animate-in fade-in duration-500">
               
               {/* COLUMN 1: LEFT SIDEBAR (Desktop Only) */}
@@ -61,13 +58,15 @@ const WeatherDashboard = ({
               </div>
 
               {/* COLUMN 2: CENTER STAGE */}
-              {/* LAYOUT FIX: 
-                 - Changed 'mt-4' to 'mt-1 sm:mt-4' to pull the card higher on mobile.
-              */}
-              <div className="col-span-1 lg:col-span-6 flex flex-col items-center justify-start lg:justify-center relative mt-1 sm:mt-4 lg:mt-0">
+              {/* FIX: Removed 'lg:justify-center' so items stack naturally from the top */}
+              <div className="col-span-1 lg:col-span-6 flex flex-col items-center justify-start relative mt-1 sm:mt-4 lg:mt-0">
                  
-                 {/* ALERTS: Optimized margin */}
-                 <div className="w-full max-w-md z-50 mb-2 lg:mb-0 lg:absolute lg:top-0">
+                 {/* ALERTS: OVERLAP FIX 
+                     1. Removed 'lg:absolute' and 'lg:top-0'.
+                     2. Added 'mb-4' for spacing.
+                     Now the Alert is a solid block that pushes the WeatherCard down.
+                 */}
+                 <div className="w-full max-w-md z-50 mb-4 transition-all duration-300">
                     <WeatherAlerts weatherData={weatherData} />
                  </div>
 
@@ -100,7 +99,7 @@ const WeatherDashboard = ({
               </div>
             </div>
 
-            {/* DESKTOP FOOTER (Hidden on mobile to avoid double footer if you move it above) */}
+            {/* DESKTOP FOOTER */}
             <div className="hidden lg:block w-full mt-10 mb-6">
                 <Footer />
             </div>
