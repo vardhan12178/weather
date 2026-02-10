@@ -6,6 +6,47 @@
 .font-poppins {
   font-family: 'Poppins', sans-serif;
 }
+
+:root {
+  --surface-light: rgba(255, 255, 255, 0.68);
+  --surface-dark: rgba(15, 23, 42, 0.35);
+  --ring-sky: rgba(14, 165, 233, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+main::-webkit-scrollbar {
+  width: 10px;
+}
+
+main::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+main::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.6);
+  border-radius: 999px;
+}
+
+main::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.8);
+}
 .smoke-particle {
   position: absolute;
   bottom: 0;

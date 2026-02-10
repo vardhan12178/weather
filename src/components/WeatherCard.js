@@ -1,142 +1,127 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { RefreshCw, Wind, Droplet } from 'react-feather';
+import { RefreshCw, Star, Thermometer } from 'react-feather';
 
-const WeatherCard = ({ weatherData, aqi, setCoordinates }) => {
+const WeatherCard = ({
+  weatherData,
+  aqi,
+  setCoordinates,
+  unit,
+  toggleUnit,
+  isFavorite,
+  addToFavorites,
+  removeFromFavorites,
+  favorites,
+  textColor = 'text-white',
+  glassClass
+}) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   if (!weatherData) return null;
 
-  const { name, weather, main, wind, dt } = weatherData;
-  const { main: description, icon } = weather[0];
-  const { temp, humidity } = main;
-  const { speed: wind_speed } = wind;
+  const { name, weather, main, dt, coord } = weatherData;
+  const { temp, feels_like, temp_max, temp_min } = main;
+  const summary = weather[0];
+
+  const buttonClass = `inline-flex items-center justify-center rounded-full transition-colors ${
+    glassClass ? 'bg-white/20 hover:bg-white/35' : 'bg-black/20 hover:bg-black/35'
+  }`;
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    if (setCoordinates && weatherData.coord) setCoordinates(weatherData.coord);
-    setTimeout(() => setIsRefreshing(false), 1000);
+    if (setCoordinates && coord) setCoordinates(coord);
+    setTimeout(() => setIsRefreshing(false), 800);
+  };
+
+  const handleFavoriteClick = () => {
+    if (isFavorite) {
+      removeFromFavorites(name);
+      return;
+    }
+    addToFavorites(weatherData);
   };
 
   const getAQIStatus = (index) => {
     switch (index) {
-      case 1: return { label: 'Excellent', color: 'bg-emerald-500 text-white shadow-emerald-500/40' };
-      case 2: return { label: 'Good', color: 'bg-green-500 text-white shadow-green-500/40' };
-      case 3: return { label: 'Moderate', color: 'bg-yellow-500 text-white shadow-yellow-500/40' };
-      case 4: return { label: 'Poor', color: 'bg-orange-500 text-white shadow-orange-500/40' };
-      case 5: return { label: 'Hazardous', color: 'bg-red-600 text-white shadow-red-600/40' };
-      default: return { label: 'Unknown', color: 'bg-gray-400 text-white' };
+      case 1:
+        return { label: 'Excellent', classes: 'bg-emerald-500/90 text-white' };
+      case 2:
+        return { label: 'Good', classes: 'bg-green-500/90 text-white' };
+      case 3:
+        return { label: 'Moderate', classes: 'bg-amber-500/90 text-white' };
+      case 4:
+        return { label: 'Poor', classes: 'bg-orange-500/90 text-white' };
+      case 5:
+        return { label: 'Hazardous', classes: 'bg-red-600/90 text-white' };
+      default:
+        return { label: 'Unknown', classes: 'bg-slate-500/90 text-white' };
     }
   };
 
   const aqiStatus = getAQIStatus(aqi?.main?.aqi);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5 }}
-      // FIX: Reduced vertical padding (py-6 -> py-2 sm:py-6) to save space
-      className="flex flex-col items-center justify-center text-center w-full z-10 px-2 sm:px-4 py-2 sm:py-6"
-    >
-      {/* 1. CITY NAME & DATE */}
-      {/* FIX: Reduced bottom margin (mb-6 -> mb-2 sm:mb-6) */}
-      <div className="flex flex-col items-center gap-1 sm:gap-2 mb-2 sm:mb-6">
-        {/* FIX: Reduced text size (text-4xl -> text-3xl) for small screens */}
-        <h1 className="text-3xl sm:text-5xl md:text-7xl font-black tracking-tighter text-slate-800 dark:text-white drop-shadow-sm leading-tight text-center">
-          {name}
-        </h1>
-        <p className="text-slate-600 dark:text-blue-200 font-bold tracking-widest uppercase text-[10px] sm:text-xs">
+    <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }} className="relative">
+      <div className="absolute top-0 right-0 flex items-center gap-2">
+        <button onClick={toggleUnit} className={`${buttonClass} px-4 py-2 ${textColor} text-xs font-bold tracking-widest shadow-lg`}>
+          {unit === 'metric' ? 'C' : 'F'}
+        </button>
+        <button onClick={handleRefresh} className={`${buttonClass} p-2.5 ${textColor} shadow-lg ${isRefreshing ? 'animate-spin' : ''}`}>
+          <RefreshCw size={16} />
+        </button>
+        <button
+          onClick={handleFavoriteClick}
+          className={`${buttonClass} p-2.5 ${isFavorite ? 'bg-amber-400/90 hover:bg-amber-300 text-slate-900' : `${textColor}`}`}
+          title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+          disabled={!isFavorite && favorites?.length >= 5}
+        >
+          <Star size={16} className={isFavorite ? 'fill-current' : ''} />
+        </button>
+      </div>
+
+      <div className="pt-14 text-center sm:text-left">
+        <p className={`${textColor} opacity-70 font-semibold text-xs uppercase tracking-[0.2em]`}>
           {new Date(dt * 1000).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
         </p>
+        <h2 className={`${textColor} text-4xl sm:text-5xl font-black mt-1 tracking-tight`}>{name}</h2>
       </div>
 
-      {/* 2. AQI BADGE */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6 items-center">
+        <div className="flex items-center gap-4">
+          <img src={`https://openweathermap.org/img/wn/${summary.icon}@4x.png`} alt={summary.main} className="w-28 h-28 sm:w-32 sm:h-32 object-contain" />
+          <div>
+            <p className={`${textColor} text-6xl sm:text-7xl font-black leading-none`}>{Math.round(temp)}</p>
+            <p className={`${textColor} opacity-80 text-lg font-semibold capitalize`}>{summary.description}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-2xl bg-white/25 dark:bg-white/10 p-3">
+            <p className={`${textColor} text-[10px] uppercase tracking-widest opacity-60`}>Feels like</p>
+            <p className={`${textColor} text-xl font-bold mt-1`}>{Math.round(feels_like)}&deg;</p>
+          </div>
+          <div className="rounded-2xl bg-white/25 dark:bg-white/10 p-3">
+            <p className={`${textColor} text-[10px] uppercase tracking-widest opacity-60`}>High</p>
+            <p className={`${textColor} text-xl font-bold mt-1`}>{Math.round(temp_max)}&deg;</p>
+          </div>
+          <div className="rounded-2xl bg-white/25 dark:bg-white/10 p-3">
+            <p className={`${textColor} text-[10px] uppercase tracking-widest opacity-60`}>Low</p>
+            <p className={`${textColor} text-xl font-bold mt-1`}>{Math.round(temp_min)}&deg;</p>
+          </div>
+          <div className="rounded-2xl bg-white/25 dark:bg-white/10 p-3">
+            <div className="flex items-center gap-1.5">
+              <Thermometer size={14} className={`${textColor} opacity-70`} />
+              <p className={`${textColor} text-[10px] uppercase tracking-widest opacity-60`}>Air quality</p>
+            </div>
+            <p className={`${textColor} text-sm font-bold mt-1`}>{aqi ? `AQI ${aqi.main.aqi} ${aqiStatus.label}` : 'Unavailable'}</p>
+          </div>
+        </div>
+      </div>
+
       {aqi && (
-        <motion.div 
-          initial={{ y: 10, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          // FIX: Reduced bottom margin (mb-8 -> mb-4 sm:mb-8)
-          className={`flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-black tracking-wider uppercase ${aqiStatus.color} shadow-lg mb-4 sm:mb-8`}
-        >
-          <span>AQI: {aqi.main.aqi}</span>
-          <span className="w-1 h-1 bg-white rounded-full opacity-50"></span>
-          <span>{aqiStatus.label}</span>
-        </motion.div>
+        <div className="mt-5 flex justify-center sm:justify-start">
+          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider ${aqiStatus.classes}`}>Air quality {aqiStatus.label}</span>
+        </div>
       )}
-
-      {/* 3. MAIN VISUAL (Icon + Temp) */}
-      {/* FIX: Reduced bottom margin (mb-10 -> mb-6) */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-0 sm:gap-10 relative w-full mb-6 sm:mb-10">
-        
-        {/* Animated Icon with Glow */}
-        <div className="relative">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 sm:w-32 sm:h-32 bg-white/40 blur-3xl rounded-full"></div>
-            <motion.img
-              src={`https://openweathermap.org/img/wn/${icon}@4x.png`}
-              alt={description}
-              // FIX: MASSIVE REDUCTION in size (w-48 -> w-32) for mobile
-              className="relative w-32 h-32 sm:w-56 sm:h-56 md:w-64 md:h-64 object-contain drop-shadow-[0_15px_15px_rgba(0,0,0,0.25)] z-10"
-              animate={{ y: [0, -15, 0] }}
-              transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
-            />
-        </div>
-        
-        {/* Temperature & Description */}
-        <div className="flex flex-col items-center sm:items-start z-10">
-          <div className="flex items-start">
-            {/* FIX: Reduced font size (text-8xl -> text-6xl) for mobile */}
-            <span className="text-6xl sm:text-8xl md:text-[9rem] leading-none font-black text-slate-800 dark:text-white tracking-tighter drop-shadow-sm">
-              {Math.round(temp)}
-            </span>
-            {/* FIX: Adjusted degree symbol size and position */}
-            <span className="text-2xl sm:text-6xl font-bold text-slate-600 dark:text-blue-200 mt-2 sm:mt-6">
-              °C
-            </span>
-          </div>
-          <span className="text-xl sm:text-3xl font-bold text-slate-600 dark:text-blue-100 capitalize -mt-1 sm:-mt-2">
-            {description}
-          </span>
-        </div>
-      </div>
-
-      {/* 4. STATS CONTROL BAR */}
-      {/* FIX: Reduced Padding (px-8 -> px-4) to prevent overflow on very narrow phones */}
-      <div className="flex items-center gap-4 sm:gap-10 bg-white/40 dark:bg-black/30 px-4 sm:px-8 py-3 sm:py-4 rounded-3xl backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-lg hover:scale-105 transition-transform duration-300">
-          
-          {/* Wind */}
-          <div className="flex flex-col items-center gap-1">
-             <div className="flex items-center gap-2 text-slate-700 dark:text-blue-200">
-                <Wind size={16} className="sm:w-[18px]" />
-                <span className="font-black text-sm sm:text-lg">{wind_speed}</span>
-             </div>
-             <span className="text-[9px] sm:text-[10px] font-bold uppercase text-slate-500 dark:text-white/40 tracking-wider">Wind</span>
-          </div>
-
-          <div className="w-px h-6 sm:h-8 bg-slate-900/10 dark:bg-white/10"></div>
-
-          {/* Humidity */}
-          <div className="flex flex-col items-center gap-1">
-             <div className="flex items-center gap-2 text-slate-700 dark:text-blue-200">
-                <Droplet size={16} className="sm:w-[18px]" />
-                <span className="font-black text-sm sm:text-lg">{humidity}%</span>
-             </div>
-             <span className="text-[9px] sm:text-[10px] font-bold uppercase text-slate-500 dark:text-white/40 tracking-wider">Humidity</span>
-          </div>
-
-          <div className="w-px h-6 sm:h-8 bg-slate-900/10 dark:bg-white/10"></div>
-
-          {/* Refresh Button */}
-          <button 
-            onClick={handleRefresh} 
-            className="flex flex-col items-center gap-1 group"
-          >
-             <div className={`p-1.5 sm:p-2 rounded-full bg-white/50 dark:bg-white/10 group-hover:bg-white group-hover:text-blue-500 transition-colors ${isRefreshing ? 'animate-spin' : ''}`}>
-                <RefreshCw size={16} className="sm:w-[18px] text-slate-800 dark:text-white group-hover:text-blue-600" />
-             </div>
-             <span className="text-[9px] sm:text-[10px] font-bold uppercase text-slate-500 dark:text-white/40 tracking-wider group-hover:text-blue-600">Refresh</span>
-          </button>
-      </div>
-
     </motion.div>
   );
 };

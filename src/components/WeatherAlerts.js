@@ -1,112 +1,81 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, CloudLightning, Thermometer, Wind, X, Info } from 'react-feather';
+import { AnimatePresence, motion } from 'framer-motion';
+import { AlertTriangle, Thermometer, Wind, CloudRain, X } from 'react-feather';
 
-const WeatherAlerts = ({ weatherData }) => {
+const WeatherAlerts = ({ weatherData, unit = 'metric' }) => {
   const [isVisible, setIsVisible] = useState(true);
-
-  if (!weatherData) return null;
+  if (!weatherData || !isVisible) return null;
 
   const { main, wind, weather } = weatherData;
-  const temp = main.temp;
-  const windSpeed = wind.speed;
   const condition = weather[0].main;
+  const heatThreshold = unit === 'metric' ? 35 : 95;
+  const coldThreshold = unit === 'metric' ? 0 : 32;
+  const unitLabel = unit === 'metric' ? 'C' : 'F';
 
   const getAlert = () => {
-    // 1. Severe Storms
     if (condition === 'Thunderstorm' || condition === 'Tornado') {
       return {
-        id: 'storm',
-        title: 'Severe Weather',
-        message: 'Thunderstorms detected. Seek shelter.',
-        icon: <CloudLightning className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />,
-        // Light Mode: Yellow-50 bg, Dark Text | Dark Mode: Yellow-900/30 bg, Light Text
-        style: 'bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-500 text-gray-800 dark:text-yellow-100'
+        title: 'Severe weather advisory',
+        message: 'Thunderstorms detected nearby. Avoid open areas and stay indoors.',
+        icon: <AlertTriangle size={16} />,
+        classes: 'bg-amber-100/85 dark:bg-amber-900/35 text-amber-900 dark:text-amber-100 border-amber-400/70'
       };
     }
-
-    // 2. Extreme Heat (>35°C)
-    if (temp > 35) {
+    if (main.temp > heatThreshold) {
       return {
-        id: 'heat',
-        title: 'Excessive Heat',
-        message: `High temperature (${Math.round(temp)}°C). Stay hydrated.`,
-        icon: <Thermometer className="w-5 h-5 text-red-600 dark:text-red-400" />,
-        style: 'bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 text-gray-800 dark:text-red-100'
+        title: 'Heat advisory',
+        message: `Current temperature is ${Math.round(main.temp)}${unitLabel}. Hydrate and limit direct sun exposure.`,
+        icon: <Thermometer size={16} />,
+        classes: 'bg-red-100/85 dark:bg-red-900/35 text-red-900 dark:text-red-100 border-red-400/70'
       };
     }
-
-    // 3. Extreme Cold (<0°C)
-    if (temp < 0) {
+    if (main.temp < coldThreshold) {
       return {
-        id: 'cold',
-        title: 'Freeze Warning',
-        message: `Sub-zero temperatures (${Math.round(temp)}°C). Watch for ice.`,
-        icon: <Thermometer className="w-5 h-5 text-blue-600 dark:text-blue-400" />,
-        style: 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 text-gray-800 dark:text-blue-100'
+        title: 'Freeze advisory',
+        message: `Current temperature is ${Math.round(main.temp)}${unitLabel}. Surfaces may be slippery.`,
+        icon: <Thermometer size={16} />,
+        classes: 'bg-sky-100/85 dark:bg-sky-900/35 text-sky-900 dark:text-sky-100 border-sky-400/70'
       };
     }
-
-    // 4. High Winds (>15m/s)
-    if (windSpeed > 15) {
+    if (wind.speed > 15) {
       return {
-        id: 'wind',
-        title: 'High Wind',
-        message: `Gusts reaching ${Math.round(windSpeed)} m/s. Secure loose objects.`,
-        icon: <Wind className="w-5 h-5 text-orange-600 dark:text-orange-400" />,
-        style: 'bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500 text-gray-800 dark:text-orange-100'
+        title: 'High wind advisory',
+        message: `Wind speeds near ${Math.round(wind.speed)} m/s expected. Secure lightweight outdoor objects.`,
+        icon: <Wind size={16} />,
+        classes: 'bg-orange-100/85 dark:bg-orange-900/35 text-orange-900 dark:text-orange-100 border-orange-400/70'
       };
     }
-
-    // 5. Rain/Drizzle (Info only)
     if (condition === 'Rain' || condition === 'Drizzle') {
-       return {
-         id: 'rain',
-         title: 'Precipitation',
-         message: 'Rain expected. Don\'t forget an umbrella.',
-         icon: <Info className="w-5 h-5 text-blue-500 dark:text-blue-300" />,
-         style: 'bg-blue-50/50 dark:bg-blue-900/10 border-l-4 border-blue-400 text-gray-700 dark:text-blue-100'
-       };
+      return {
+        title: 'Rain expected',
+        message: 'Carry rain gear if you are heading out in the next few hours.',
+        icon: <CloudRain size={16} />,
+        classes: 'bg-blue-100/85 dark:bg-blue-900/35 text-blue-900 dark:text-blue-100 border-blue-400/70'
+      };
     }
-
     return null;
   };
 
   const alert = getAlert();
-
-  if (!alert || !isVisible) return null;
+  if (!alert) return null;
 
   return (
     <AnimatePresence>
       <motion.div
-        key={alert.id}
-        initial={{ opacity: 0, y: -20, height: 0 }}
-        animate={{ opacity: 1, y: 0, height: 'auto' }}
-        exit={{ opacity: 0, y: -20, height: 0 }}
-        className={`w-full rounded-r-lg shadow-sm flex items-center justify-between p-4 mb-8 ${alert.style}`}
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        className={`w-full rounded-2xl border px-4 py-3 flex items-start justify-between gap-4 ${alert.classes}`}
       >
-        <div className="flex items-center gap-4">
-          {/* Icon Wrapper */}
-          <div className="p-2 bg-white/50 dark:bg-black/20 rounded-full">
-            {alert.icon}
-          </div>
-
-          <div className="flex flex-col">
-            <h4 className="font-bold uppercase text-xs tracking-widest opacity-90">
-              {alert.title}
-            </h4>
-            <p className="text-sm font-medium">
-              {alert.message}
-            </p>
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5">{alert.icon}</span>
+          <div>
+            <p className="text-xs font-black uppercase tracking-widest">{alert.title}</p>
+            <p className="text-sm font-medium mt-1">{alert.message}</p>
           </div>
         </div>
-
-        <button
-          onClick={() => setIsVisible(false)}
-          className="p-2 opacity-50 hover:opacity-100 transition-opacity"
-          aria-label="Dismiss alert"
-        >
-          <X size={18} />
+        <button onClick={() => setIsVisible(false)} className="opacity-70 hover:opacity-100 transition-opacity" aria-label="Dismiss alert">
+          <X size={16} />
         </button>
       </motion.div>
     </AnimatePresence>

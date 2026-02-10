@@ -1,90 +1,71 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import { motion } from 'framer-motion';
+import { ArrowUp, ArrowDown } from 'react-feather';
 
-const WeatherForecast = ({ location, coordinates }) => {
+const WeatherForecast = ({ forecastData, textColor = 'text-white', textSubColor = 'text-white/50' }) => {
   const [forecast, setForecast] = useState([]);
 
   useEffect(() => {
-    const fetchForecast = async () => {
-      try {
-        let url = '';
-        if (coordinates.lat && coordinates.lon) {
-          url = `https://api.openweathermap.org/data/2.5/forecast?lat=${coordinates.lat}&lon=${coordinates.lon}&appid=30755a4a95cbde88af53afaafad1ea50&units=metric`;
-        } else if (location) {
-          url = `https://api.openweathermap.org/data/2.5/forecast?q=${location}&appid=30755a4a95cbde88af53afaafad1ea50&units=metric`;
+    if (!forecastData?.list) return;
+
+    const dailyMap = {};
+    forecastData.list.forEach((reading) => {
+      const date = reading.dt_txt.split(' ')[0];
+      if (!dailyMap[date]) {
+        dailyMap[date] = { temps: [], readings: [] };
+      }
+      dailyMap[date].temps.push(reading.main.temp);
+      dailyMap[date].readings.push(reading);
+    });
+
+    const dailyData = Object.values(dailyMap).map((day) => {
+      const noonReading = day.readings.find((reading) => reading.dt_txt.includes('12:00:00')) || day.readings[0];
+      return {
+        ...noonReading,
+        main: {
+          ...noonReading.main,
+          temp_max: Math.max(...day.temps),
+          temp_min: Math.min(...day.temps)
         }
-        if (url) {
-          const response = await axios.get(url);
-          const dailyData = response.data.list.filter((reading) => 
-            reading.dt_txt.includes("12:00:00")
-          );
-          setForecast(dailyData.slice(0, 5));
-        }
-      } catch (err) { console.error(err); }
-    };
-    fetchForecast();
-  }, [location, coordinates]);
+      };
+    });
+
+    setForecast(dailyData.slice(0, 5));
+  }, [forecastData]);
 
   return (
-    <div className="w-full h-full flex flex-col justify-center">
-      <h3 className="text-slate-700 dark:text-slate-300 font-bold text-sm mb-4 ml-1 uppercase tracking-wider opacity-80">
-        5-Day Forecast
-      </h3>
+    <div className="w-full h-full flex flex-col">
+      <h3 className={`${textColor} text-xs font-bold uppercase tracking-[0.2em] opacity-70 mb-4`}>5 day outlook</h3>
 
-      <div className="flex flex-col gap-3 w-full">
-        {forecast.map((day, index) => {
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col w-full gap-1">
+        {forecast.map((day) => {
           const date = new Date(day.dt * 1000);
-          
           return (
-            <motion.div
-              key={day.dt}
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1, type: "spring", stiffness: 100 }}
-              className="flex items-center justify-between p-3 px-5 rounded-3xl 
-                         bg-white/40 dark:bg-black/30 
-                         border border-white/50 dark:border-white/10
-                         backdrop-blur-md shadow-sm
-                         hover:bg-white/60 dark:hover:bg-white/10 hover:scale-[1.02] 
-                         transition-all duration-300 cursor-pointer group"
-            >
-              {/* Left: Day & Date */}
-              <div className="flex flex-col">
-                <span className="text-gray-900 dark:text-white font-black uppercase text-sm tracking-wide">
-                  {date.toLocaleDateString('en-US', { weekday: 'short' })}
-                </span>
-                <span className="text-gray-600 dark:text-gray-400 text-[11px] font-semibold uppercase opacity-80">
-                  {date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
-                </span>
+            <motion.div key={day.dt} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} className="flex items-center justify-between py-2.5 px-2 rounded-xl hover:bg-white/10 transition-colors">
+              <div className="w-20">
+                <p className={`${textColor} text-sm font-bold`}>{date.toLocaleDateString('en-US', { weekday: 'short' })}</p>
+                <p className={`${textSubColor} text-xs`}>{date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
               </div>
 
-              {/* Center: Icon */}
-              <div className="flex items-center justify-center">
-                 <img
-                   src={`https://openweathermap.org/img/wn/${day.weather[0].icon}@2x.png`}
-                   alt="icon"
-                   className="w-10 h-10 object-contain drop-shadow-md group-hover:scale-125 transition-transform duration-300"
-                 />
+              <div className="flex items-center gap-2 flex-1 justify-center">
+                <img src={`https://openweathermap.org/img/wn/${day.weather[0].icon}@2x.png`} alt={day.weather[0].main} className="w-9 h-9 object-contain" />
+                <span className={`${textSubColor} text-xs font-medium capitalize hidden sm:inline w-16 truncate text-center`}>{day.weather[0].main}</span>
               </div>
 
-              {/* Right: Temp & Condition */}
-              <div className="flex flex-col items-end">
-                <div className="flex items-start">
-                   <span className="text-xl font-black text-gray-900 dark:text-white tracking-tighter">
-                     {Math.round(day.main.temp)}
-                   </span>
-                   <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 mt-1 ml-0.5">°C</span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1">
+                  <ArrowUp size={12} className="text-orange-400" />
+                  <span className={`${textColor} text-sm font-bold`}>{Math.round(day.main.temp_max)}&deg;</span>
                 </div>
-                
-                <span className="text-[10px] text-gray-700 dark:text-gray-300 font-bold capitalize bg-white/30 dark:bg-white/10 px-2 py-0.5 rounded-full mt-0.5 border border-white/20">
-                  {day.weather[0].main}
-                </span>
+                <div className="flex items-center gap-1">
+                  <ArrowDown size={12} className="text-sky-400" />
+                  <span className={`${textSubColor} text-sm font-semibold`}>{Math.round(day.main.temp_min)}&deg;</span>
+                </div>
               </div>
             </motion.div>
           );
         })}
-      </div>
+      </motion.div>
     </div>
   );
 };

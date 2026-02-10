@@ -1,10 +1,10 @@
 import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
+
 
 const Precipitation = ({ type, count = 1000 }) => {
   const mesh = useRef();
-  
+
   // Configuration based on weather type
   const config = useMemo(() => {
     switch (type) {
@@ -27,12 +27,12 @@ const Precipitation = ({ type, count = 1000 }) => {
   const { positions, velocities } = useMemo(() => {
     const pos = new Float32Array(count * 3);
     const vel = new Float32Array(count);
-    
+
     for (let i = 0; i < count; i++) {
       pos[i * 3] = (Math.random() - 0.5) * 20;     // X: Spread wide
       pos[i * 3 + 1] = (Math.random() - 0.5) * 20; // Y: Spread high
       pos[i * 3 + 2] = (Math.random() - 0.5) * 10; // Z: Depth
-      
+
       vel[i] = Math.random() * 0.2 + 0.1; // Random variance in speed
     }
     return { positions: pos, velocities: vel };
@@ -41,7 +41,7 @@ const Precipitation = ({ type, count = 1000 }) => {
   // Animation Loop (Runs 60fps)
   useFrame(() => {
     if (!mesh.current) return;
-    
+
     // Access the raw geometric positions
     const positions = mesh.current.geometry.attributes.position.array;
 
@@ -60,7 +60,7 @@ const Precipitation = ({ type, count = 1000 }) => {
         positions[i * 3] += Math.sin(Date.now() * 0.001 + i) * 0.002;
       }
     }
-    
+
     // Tell Three.js the positions have updated
     mesh.current.geometry.attributes.position.needsUpdate = true;
   });
