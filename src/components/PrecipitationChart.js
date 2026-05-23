@@ -21,8 +21,8 @@ const PrecipitationChart = ({ forecastData }) => {
                         {payload[0].payload.time}
                     </p>
                     <div className="flex items-center gap-2">
-                        <Droplet size={14} className="text-blue-500" />
-                        <p className="text-sm font-black text-blue-600 dark:text-blue-400">
+                        <Droplet size={14} className="text-brand-500" />
+                        <p className="text-sm font-bold text-brand-600 dark:text-brand-300">
                             {payload[0].value}% chance
                         </p>
                     </div>
@@ -45,9 +45,9 @@ const PrecipitationChart = ({ forecastData }) => {
             animate={{ opacity: 1, y: 0 }}
             className="w-full h-full flex flex-col"
         >
-            <h3 className="text-slate-700 dark:text-white font-bold text-xs mb-4 ml-1 uppercase tracking-widest flex items-center gap-2">
-                <Droplet size={14} className="text-blue-400" />
-                <span>Precipitation Probability</span>
+            <h3 className="text-slate-700 dark:text-white font-bold text-xs mb-4 ml-1 uppercase tracking-wider flex items-center gap-2">
+                <Droplet size={14} className="text-brand-500" />
+                <span>Precipitation probability</span>
                 <div className="h-px bg-slate-700/10 dark:bg-white/20 flex-grow"></div>
             </h3>
 

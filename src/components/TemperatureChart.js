@@ -20,7 +20,7 @@ const TemperatureChart = ({ forecastData, unit }) => {
                     <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">
                         {payload[0].payload.time}
                     </p>
-                    <p className="text-sm font-black text-blue-600 dark:text-blue-400">
+                    <p className="text-sm font-bold text-brand-600 dark:text-brand-300">
                         Temp: {payload[0].value}°{unit === 'metric' ? 'C' : 'F'}
                     </p>
                     {payload[1] && (
@@ -40,8 +40,8 @@ const TemperatureChart = ({ forecastData, unit }) => {
             animate={{ opacity: 1, y: 0 }}
             className="w-full h-full flex flex-col"
         >
-            <h3 className="text-slate-700 dark:text-white font-bold text-xs mb-4 ml-1 uppercase tracking-widest flex items-center gap-2">
-                <span>24-Hour Temperature Trend</span>
+            <h3 className="text-slate-700 dark:text-white font-bold text-xs mb-4 ml-1 uppercase tracking-wider flex items-center gap-2">
+                <span>24-hour temperature trend</span>
                 <div className="h-px bg-slate-700/10 dark:bg-white/20 flex-grow"></div>
             </h3>
 
@@ -49,8 +49,8 @@ const TemperatureChart = ({ forecastData, unit }) => {
                 <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                         <linearGradient id="tempGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#60a5fa" stopOpacity={0.4} />
-                            <stop offset="95%" stopColor="#60a5fa" stopOpacity={0} />
+                            <stop offset="5%" stopColor="#2f6bed" stopOpacity={0.4} />
+                            <stop offset="95%" stopColor="#2f6bed" stopOpacity={0} />
                         </linearGradient>
                         <linearGradient id="feelsGradient" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#c084fc" stopOpacity={0.3} />
@@ -76,11 +76,11 @@ const TemperatureChart = ({ forecastData, unit }) => {
                     <Area
                         type="monotone"
                         dataKey="temp"
-                        stroke="#60a5fa"
+                        stroke="#2f6bed"
                         strokeWidth={3}
                         fill="url(#tempGradient)"
-                        dot={{ fill: '#60a5fa', r: 4 }}
-                        activeDot={{ r: 6, fill: '#60a5fa' }}
+                        dot={{ fill: '#2f6bed', r: 4 }}
+                        activeDot={{ r: 6, fill: '#2f6bed' }}
                     />
                     <Area
                         type="monotone"
@@ -97,7 +97,7 @@ const TemperatureChart = ({ forecastData, unit }) => {
             {/* Legend */}
             <div className="flex items-center justify-center gap-6 mt-4">
                 <div className="flex items-center gap-2">
-                    <div className="w-4 h-0.5 bg-blue-400"></div>
+                    <div className="w-4 h-0.5 bg-brand-500"></div>
                     <span className="text-xs font-semibold text-slate-600 dark:text-slate-200">Temperature</span>
                 </div>
                 <div className="flex items-center gap-2">

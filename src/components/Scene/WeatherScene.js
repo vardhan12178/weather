@@ -62,21 +62,21 @@ const WeatherScene = ({ condition, isDay }) => {
 
       {isStorm && <ThunderFlash />}
 
-      {/* CLOUDS - More prominent */}
+      {/* CLOUDS — soft, atmospheric (kept subtle so UI stays readable) */}
       {isCloudy && (
         <group position={[0, 3, -5]}>
-          <Cloud opacity={isDay ? 0.9 : 0.6} speed={0.3} width={30} depth={8} segments={30} />
-          <Cloud opacity={isDay ? 0.7 : 0.5} speed={0.2} width={20} depth={6} segments={20} position={[15, -1, 2]} />
-          <Cloud opacity={isDay ? 0.6 : 0.4} speed={0.15} width={15} depth={4} segments={15} position={[-12, 1, -3]} />
+          <Cloud opacity={isDay ? 0.7 : 0.5} speed={0.25} width={30} depth={8} segments={30} />
+          <Cloud opacity={isDay ? 0.55 : 0.4} speed={0.18} width={20} depth={6} segments={20} position={[15, -1, 2]} />
+          <Cloud opacity={isDay ? 0.45 : 0.3} speed={0.13} width={15} depth={4} segments={15} position={[-12, 1, -3]} />
         </group>
       )}
 
-      {/* --- PRECIPITATION MAPPING --- Enhanced counts */}
-      {(isRain || isStorm) && <Precipitation type="Rain" count={3000} />}
-      {isSnow && <Precipitation type="Snow" count={2000} />}
-      {isDusty && <Precipitation type="Dust" count={1500} />}
-      {isFoggy && <Precipitation type="Smoke" count={1000} />}
-      {isTornado && <Precipitation type="Tornado" count={3000} />}
+      {/* --- PRECIPITATION MAPPING --- restrained counts for a calmer backdrop */}
+      {(isRain || isStorm) && <Precipitation type="Rain" count={1500} />}
+      {isSnow && <Precipitation type="Snow" count={1200} />}
+      {isDusty && <Precipitation type="Dust" count={900} />}
+      {isFoggy && <Precipitation type="Smoke" count={700} />}
+      {isTornado && <Precipitation type="Tornado" count={1500} />}
 
     </>
   );
