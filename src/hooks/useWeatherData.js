@@ -332,6 +332,18 @@ export const useWeatherData = () => {
       setWeatherData(wd);
       setForecastData(fd);
       setAqi(normalisedAqi);
+
+      // Open-Meteo snaps requested coordinates to its weather grid, so the
+      // returned lat/lon usually differ slightly from what we asked for. Sync
+      // the dedup ref to these snapped coords BEFORE updating coordinate state —
+      // otherwise the coordinates effect treats them as a brand-new location,
+      // reverse-geocodes them, and overwrites the searched city name with a
+      // second fetch (e.g. London → "City of Westminster").
+      lastFetchRef.current = {
+        lat: weatherRes.data.latitude,
+        lon: weatherRes.data.longitude,
+        unit: currentUnit,
+      };
       setCoordinates({ lat: weatherRes.data.latitude, lon: weatherRes.data.longitude });
     } catch (err) {
       console.error('Weather fetch error:', err);
