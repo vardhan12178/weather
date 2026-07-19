@@ -8,7 +8,7 @@ const PrecipitationChart = ({ forecastData }) => {
 
     // Prepare data for precipitation probability
     const chartData = forecastData.list.slice(0, 8).map(item => ({
-        time: new Date(item.dt * 1000).toLocaleTimeString([], { hour: 'numeric', hour12: true }),
+        time: item.localTimeLabel,
         rain: Math.round((item.pop || 0) * 100), // Probability of precipitation as percentage
         timestamp: item.dt
     }));

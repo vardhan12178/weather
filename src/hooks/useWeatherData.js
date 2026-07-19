@@ -1,449 +1,439 @@
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 
-// ─── Open-Meteo endpoint base URLs (no API key needed) ───────────────────────
-const WEATHER_URL    = 'https://api.open-meteo.com/v1/forecast';
+const WEATHER_URL = 'https://api.open-meteo.com/v1/forecast';
 const AIR_QUALITY_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
-const GEOCODE_URL    = 'https://geocoding-api.open-meteo.com/v1/search';
-const REVERSE_URL    = 'https://nominatim.openstreetmap.org/reverse';
+const GEOCODE_URL = 'https://geocoding-api.open-meteo.com/v1/search';
+const REVERSE_URL = 'https://nominatim.openstreetmap.org/reverse';
+const LAST_LOCATION_KEY = 'weatherLastLocation';
+const UNIT_KEY = 'weatherUnit';
+const DEFAULT_LOCATION = 'Mumbai';
 
-// ─── WMO weather-code → condition / description / OWM-compatible icon ────────
-// Open-Meteo uses WMO codes; we map them to OWM icon strings so every existing
-// component (icons, background gradients, alerts, recommendations) keeps working.
-const wmoMap = (code, isDay) => {
-  const s = isDay ? 'd' : 'n';
+export const wmoMap = (code, isDay) => {
+  const suffix = isDay ? 'd' : 'n';
   const table = {
-    0:  { condition: 'Clear',        description: 'clear sky',                    icon: `01${s}` },
-    1:  { condition: 'Clear',        description: 'mainly clear',                 icon: `01${s}` },
-    2:  { condition: 'Clouds',       description: 'partly cloudy',                icon: `02${s}` },
-    3:  { condition: 'Clouds',       description: 'overcast',                     icon: `04${s}` },
-    45: { condition: 'Fog',          description: 'foggy',                        icon: `50${s}` },
-    48: { condition: 'Fog',          description: 'depositing rime fog',          icon: `50${s}` },
-    51: { condition: 'Drizzle',      description: 'light drizzle',                icon: `09${s}` },
-    53: { condition: 'Drizzle',      description: 'moderate drizzle',             icon: `09${s}` },
-    55: { condition: 'Drizzle',      description: 'dense drizzle',                icon: `09${s}` },
-    56: { condition: 'Drizzle',      description: 'light freezing drizzle',       icon: `09${s}` },
-    57: { condition: 'Drizzle',      description: 'heavy freezing drizzle',       icon: `09${s}` },
-    61: { condition: 'Rain',         description: 'slight rain',                  icon: `10${s}` },
-    63: { condition: 'Rain',         description: 'moderate rain',                icon: `10${s}` },
-    65: { condition: 'Rain',         description: 'heavy rain',                   icon: `10${s}` },
-    66: { condition: 'Rain',         description: 'light freezing rain',          icon: `13${s}` },
-    67: { condition: 'Rain',         description: 'heavy freezing rain',          icon: `13${s}` },
-    71: { condition: 'Snow',         description: 'slight snowfall',              icon: `13${s}` },
-    73: { condition: 'Snow',         description: 'moderate snowfall',            icon: `13${s}` },
-    75: { condition: 'Snow',         description: 'heavy snowfall',               icon: `13${s}` },
-    77: { condition: 'Snow',         description: 'snow grains',                  icon: `13${s}` },
-    80: { condition: 'Rain',         description: 'slight rain showers',          icon: `09${s}` },
-    81: { condition: 'Rain',         description: 'moderate rain showers',        icon: `09${s}` },
-    82: { condition: 'Rain',         description: 'violent rain showers',         icon: `09${s}` },
-    85: { condition: 'Snow',         description: 'slight snow showers',          icon: `13${s}` },
-    86: { condition: 'Snow',         description: 'heavy snow showers',           icon: `13${s}` },
-    95: { condition: 'Thunderstorm', description: 'thunderstorm',                 icon: `11${s}` },
-    96: { condition: 'Thunderstorm', description: 'thunderstorm with hail',       icon: `11${s}` },
-    99: { condition: 'Thunderstorm', description: 'thunderstorm with heavy hail', icon: `11${s}` },
+    0: { condition: 'Clear', description: 'clear sky', icon: `01${suffix}` },
+    1: { condition: 'Clear', description: 'mainly clear', icon: `01${suffix}` },
+    2: { condition: 'Clouds', description: 'partly cloudy', icon: `02${suffix}` },
+    3: { condition: 'Clouds', description: 'overcast', icon: `04${suffix}` },
+    45: { condition: 'Fog', description: 'foggy', icon: `50${suffix}` },
+    48: { condition: 'Fog', description: 'rime fog', icon: `50${suffix}` },
+    51: { condition: 'Drizzle', description: 'light drizzle', icon: `09${suffix}` },
+    53: { condition: 'Drizzle', description: 'moderate drizzle', icon: `09${suffix}` },
+    55: { condition: 'Drizzle', description: 'dense drizzle', icon: `09${suffix}` },
+    56: { condition: 'Drizzle', description: 'freezing drizzle', icon: `09${suffix}` },
+    57: { condition: 'Drizzle', description: 'heavy freezing drizzle', icon: `09${suffix}` },
+    61: { condition: 'Rain', description: 'slight rain', icon: `10${suffix}` },
+    63: { condition: 'Rain', description: 'moderate rain', icon: `10${suffix}` },
+    65: { condition: 'Rain', description: 'heavy rain', icon: `10${suffix}` },
+    66: { condition: 'Rain', description: 'freezing rain', icon: `13${suffix}` },
+    67: { condition: 'Rain', description: 'heavy freezing rain', icon: `13${suffix}` },
+    71: { condition: 'Snow', description: 'slight snowfall', icon: `13${suffix}` },
+    73: { condition: 'Snow', description: 'moderate snowfall', icon: `13${suffix}` },
+    75: { condition: 'Snow', description: 'heavy snowfall', icon: `13${suffix}` },
+    77: { condition: 'Snow', description: 'snow grains', icon: `13${suffix}` },
+    80: { condition: 'Rain', description: 'slight rain showers', icon: `09${suffix}` },
+    81: { condition: 'Rain', description: 'moderate rain showers', icon: `09${suffix}` },
+    82: { condition: 'Rain', description: 'violent rain showers', icon: `09${suffix}` },
+    85: { condition: 'Snow', description: 'slight snow showers', icon: `13${suffix}` },
+    86: { condition: 'Snow', description: 'heavy snow showers', icon: `13${suffix}` },
+    95: { condition: 'Thunderstorm', description: 'thunderstorm', icon: `11${suffix}` },
+    96: { condition: 'Thunderstorm', description: 'thunderstorm with hail', icon: `11${suffix}` },
+    99: { condition: 'Thunderstorm', description: 'severe thunderstorm with hail', icon: `11${suffix}` },
   };
-  return table[code] ?? { condition: 'Clear', description: 'unknown', icon: `01${s}` };
+  return table[code] ?? { condition: 'Clear', description: 'conditions unavailable', icon: `01${suffix}` };
 };
 
-// ─── European AQI (0–500) → OWM 1-5 index ────────────────────────────────────
-const euAqiToIndex = (euAqi) => {
-  if (euAqi == null) return null;
-  if (euAqi <= 20) return 1;
-  if (euAqi <= 40) return 2;
-  if (euAqi <= 60) return 3;
-  if (euAqi <= 80) return 4;
+export const euAqiToIndex = (value) => {
+  if (value == null) return null;
+  if (value <= 20) return 1;
+  if (value <= 40) return 2;
+  if (value <= 60) return 3;
+  if (value <= 80) return 4;
   return 5;
 };
 
-// ─── Normalise Open-Meteo current + daily into OWM-compatible weatherData ────
-const normaliseWeather = (omData, aqData, cityInfo) => {
-  const c   = omData.current;
-  const h   = omData.hourly;
-  const d   = omData.daily;
-  const isDay = c.is_day === 1;
-  const wx  = wmoMap(c.weather_code, isDay);
-
-  // Find the hourly index matching the current timestamp
-  const currentTime = c.time; // e.g. "2025-05-21T14:00"
-  const hIdx = Math.max(0, h.time.findIndex(t => t === currentTime));
-
-  // Safely read hourly values at current index (fallback gracefully)
-  const visibility = Math.min(h.visibility?.[hIdx] ?? 10000, 10000);
-  const uvIndex    = h.uv_index?.[hIdx] ?? d.uv_index_max?.[0] ?? 0;
-
-  // Sunrise / sunset as Unix timestamps (daily[0] = today)
-  const sunriseTs = Math.floor(new Date(d.sunrise[0]).getTime() / 1000);
-  const sunsetTs  = Math.floor(new Date(d.sunset[0]).getTime()  / 1000);
-
-  // AQI in OWM-compatible shape
-  const aqCurrent  = aqData?.current;
-  const aqiIndex   = euAqiToIndex(aqCurrent?.european_aqi);
-  const normalisedAqi = aqiIndex ? {
-    main: { aqi: aqiIndex },
-    components: {
-      pm2_5: aqCurrent?.pm2_5   ?? null,
-      pm10:  aqCurrent?.pm10    ?? null,
-      no2:   aqCurrent?.nitrogen_dioxide ?? null,
-      o3:    aqCurrent?.ozone   ?? null,
-      so2:   aqCurrent?.sulphur_dioxide  ?? null,
-      co:    aqCurrent?.carbon_monoxide  ?? null,
-      dust:  aqCurrent?.dust    ?? null,
-    },
-  } : null;
-
-  const weatherData = {
-    // Identity
-    name: cityInfo.name,
-    coord: { lat: omData.latitude, lon: omData.longitude },
-
-    // Time
-    dt: Math.floor(new Date(c.time).getTime() / 1000),
-    timezone: omData.utc_offset_seconds,
-
-    // System / astronomy
-    sys: {
-      country: cityInfo.country_code ?? '',
-      sunrise: sunriseTs,
-      sunset:  sunsetTs,
-    },
-
-    // Condition
-    weather: [wx],
-
-    // Temperature & pressure
-    main: {
-      temp:       c.temperature_2m,
-      feels_like: c.apparent_temperature,
-      temp_max:   d.temperature_2m_max[0],
-      temp_min:   d.temperature_2m_min[0],
-      humidity:   c.relative_humidity_2m,
-      pressure:   Math.round(c.pressure_msl),
-    },
-
-    // Wind
-    wind: {
-      speed: c.wind_speed_10m,
-      deg:   c.wind_direction_10m,
-      gust:  c.wind_gusts_10m,
-    },
-
-    // Extras (not in OWM free tier, but components check for them gracefully)
-    visibility,
-    uvIndex,
-    clouds: { all: c.cloud_cover },
-    isDay,
-
-    // Precipitation
-    rain: c.precipitation > 0 ? { '1h': c.precipitation } : undefined,
+const getLocalParts = (timestamp, offsetSeconds) => {
+  const date = new Date((timestamp + offsetSeconds) * 1000);
+  const iso = date.toISOString();
+  return {
+    dateKey: iso.slice(0, 10),
+    timeLabel: date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      hour12: true,
+      timeZone: 'UTC',
+    }),
+    dateLabel: date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'UTC',
+    }),
   };
-
-  return { weatherData, normalisedAqi };
 };
 
-// ─── Normalise Open-Meteo hourly into OWM-compatible forecastData.list ───────
-// Takes one 3-hourly entry every 3 indices so the shape matches OWM's structure.
-// Crucially every day will have a "12:00:00" entry which WeatherForecast relies on.
-const normaliseForecast = (omData) => {
-  const h   = omData.hourly;
+export const normaliseWeather = (omData, aqData, cityInfo) => {
+  const current = omData.current;
+  const hourly = omData.hourly;
+  const daily = omData.daily;
+  const isDay = current.is_day === 1;
+  const weather = wmoMap(current.weather_code, isDay);
+  const hourlyIndex = Math.max(0, hourly.time.findIndex((time) => time === current.time));
+  const rawEuropeanAqi = aqData?.current?.european_aqi;
+  const aqiIndex = euAqiToIndex(rawEuropeanAqi);
+
+  const normalisedAqi = aqiIndex
+    ? {
+        main: { aqi: aqiIndex, value: Math.round(rawEuropeanAqi), scale: 'European AQI' },
+        components: {
+          pm2_5: aqData.current?.pm2_5 ?? null,
+          pm10: aqData.current?.pm10 ?? null,
+          no2: aqData.current?.nitrogen_dioxide ?? null,
+          o3: aqData.current?.ozone ?? null,
+          so2: aqData.current?.sulphur_dioxide ?? null,
+          co: aqData.current?.carbon_monoxide ?? null,
+          dust: aqData.current?.dust ?? null,
+        },
+      }
+    : null;
+
+  return {
+    weatherData: {
+      name: cityInfo.name || 'Current location',
+      coord: { lat: omData.latitude, lon: omData.longitude },
+      dt: current.time,
+      timezone: omData.utc_offset_seconds,
+      timezoneAbbreviation: omData.timezone_abbreviation,
+      updatedAt: Date.now(),
+      sys: {
+        country: cityInfo.country_code || '',
+        sunrise: daily.sunrise[0],
+        sunset: daily.sunset[0],
+      },
+      weather: [weather],
+      main: {
+        temp: current.temperature_2m,
+        feels_like: current.apparent_temperature,
+        temp_max: daily.temperature_2m_max[0],
+        temp_min: daily.temperature_2m_min[0],
+        humidity: current.relative_humidity_2m,
+        pressure: Math.round(current.pressure_msl),
+      },
+      wind: {
+        speed: current.wind_speed_10m,
+        deg: current.wind_direction_10m,
+        gust: current.wind_gusts_10m,
+      },
+      visibility: Math.min(hourly.visibility?.[hourlyIndex] ?? 10000, 10000),
+      uvIndex: hourly.uv_index?.[hourlyIndex] ?? daily.uv_index_max?.[0] ?? 0,
+      clouds: { all: current.cloud_cover },
+      isDay,
+      rain: current.precipitation > 0 ? { '1h': current.precipitation } : undefined,
+    },
+    normalisedAqi,
+  };
+};
+
+export const normaliseForecast = (omData) => {
+  const offset = omData.utc_offset_seconds;
   const list = [];
-  const nowMs = Date.now();
 
-  for (let i = 0; i < h.time.length; i++) {
-    // Only keep 3-hourly entries
-    if (i % 3 !== 0) continue;
-
-    const timeStr = h.time[i];                         // "2025-05-21T12:00"
-    const dtMs    = new Date(timeStr).getTime();
-
-    // Skip timestamps already more than 1 hour in the past
-    if (dtMs < nowMs - 3_600_000) continue;
-
-    const dt     = Math.floor(dtMs / 1000);
-    const hour   = parseInt(timeStr.split('T')[1], 10); // local hour (0-23)
-    const isDay  = hour >= 6 && hour < 20;
-    const wx     = wmoMap(h.weather_code[i], isDay);
-    const dtTxt  = timeStr.replace('T', ' ') + ':00';  // "2025-05-21 12:00:00"
+  for (let index = 0; index < omData.hourly.time.length; index += 3) {
+    const timestamp = omData.hourly.time[index];
+    if (timestamp < Math.floor(Date.now() / 1000) - 3600) continue;
+    const local = getLocalParts(timestamp, offset);
+    const localHour = new Date((timestamp + offset) * 1000).getUTCHours();
 
     list.push({
-      dt,
-      dt_txt: dtTxt,
+      dt: timestamp,
+      localDateKey: local.dateKey,
+      localTimeLabel: local.timeLabel,
+      dt_txt: `${local.dateKey} ${String(localHour).padStart(2, '0')}:00:00`,
       main: {
-        temp:       h.temperature_2m[i],
-        feels_like: h.apparent_temperature[i],
-        temp_max:   h.temperature_2m[i],
-        temp_min:   h.temperature_2m[i],
-        humidity:   h.relative_humidity_2m[i],
-        pressure:   h.pressure_msl ? Math.round(h.pressure_msl[i]) : 1013,
+        temp: omData.hourly.temperature_2m[index],
+        feels_like: omData.hourly.apparent_temperature[index],
+        humidity: omData.hourly.relative_humidity_2m[index],
+        pressure: Math.round(omData.hourly.pressure_msl?.[index] ?? 1013),
       },
-      weather: [wx],
+      weather: [wmoMap(omData.hourly.weather_code[index], localHour >= 6 && localHour < 20)],
       wind: {
-        speed: h.wind_speed_10m[i],
-        deg:   h.wind_direction_10m[i],
+        speed: omData.hourly.wind_speed_10m[index],
+        deg: omData.hourly.wind_direction_10m[index],
       },
-      pop:        (h.precipitation_probability[i] ?? 0) / 100,
-      visibility: Math.min(h.visibility?.[i] ?? 10000, 10000),
+      pop: (omData.hourly.precipitation_probability[index] ?? 0) / 100,
+      visibility: Math.min(omData.hourly.visibility?.[index] ?? 10000, 10000),
     });
-
-    if (list.length >= 56) break; // 7 days × 8 entries/day
+    if (list.length >= 56) break;
   }
 
-  return { list };
-};
-
-// ─── Reverse geocode coordinates → city name (Nominatim, free, no key) ───────
-const reverseGeocode = async (lat, lon) => {
-  try {
-    const res = await axios.get(REVERSE_URL, {
-      params: { lat, lon, format: 'json' },
-      headers: { 'Accept-Language': 'en', 'User-Agent': 'WeatherlyApp/1.0' },
-    });
-    const a = res.data.address ?? {};
-    const name = a.city ?? a.town ?? a.village ?? a.hamlet ?? a.county ?? a.state ?? 'Your Location';
+  const daily = omData.daily.time.map((timestamp, index) => {
+    const local = getLocalParts(timestamp, offset);
     return {
-      name,
-      country_code: (a.country_code ?? '').toUpperCase(),
-      country:      a.country ?? '',
-      admin1:       a.state   ?? '',
+      dt: timestamp,
+      localDateKey: local.dateKey,
+      dateLabel: local.dateLabel,
+      main: {
+        temp_min: omData.daily.temperature_2m_min[index],
+        temp_max: omData.daily.temperature_2m_max[index],
+      },
+      weather: [wmoMap(omData.daily.weather_code[index], true)],
+      pop: omData.daily.precipitation_probability_max?.[index] ?? 0,
     };
-  } catch {
-    return { name: 'Your Location', country_code: '', country: '' };
-  }
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Hook
-// ─────────────────────────────────────────────────────────────────────────────
-export const useWeatherData = () => {
-  const [weatherData, setWeatherData]   = useState(null);
-  const [forecastData, setForecastData] = useState(null);
-  const [aqi, setAqi]                   = useState(null);
-  const [location, setLocation]         = useState('');
-  const [coordinates, setCoordinates]   = useState({ lat: null, lon: null });
-  const [error, setError]               = useState('');
-  const [loading, setLoading]           = useState(false);
-  const [unit, setUnit]                 = useState('metric');
-  const [favorites, setFavorites]       = useState(() => {
-    const saved = localStorage.getItem('weatherFavorites');
-    try {
-      const parsed = saved ? JSON.parse(saved) : [];
-      return parsed.map(item =>
-        typeof item === 'string' ? { name: item, temp: null, icon: '01d', desc: '' } : item
-      );
-    } catch { return []; }
   });
 
-  // Refs — survive re-renders without causing dependency-loop issues
-  const unitRef     = useRef(unit);
-  unitRef.current   = unit;
+  return { list, daily, timezone: offset };
+};
 
+const reverseGeocode = async (lat, lon) => {
+  try {
+    const response = await axios.get(REVERSE_URL, {
+      params: { lat, lon, format: 'json' },
+      headers: { 'Accept-Language': 'en' },
+    });
+    const address = response.data.address ?? {};
+    return {
+      name: address.city ?? address.town ?? address.village ?? address.county ?? address.state ?? 'Current location',
+      country_code: (address.country_code ?? '').toUpperCase(),
+      country: address.country ?? '',
+      admin1: address.state ?? '',
+    };
+  } catch {
+    return { name: 'Current location', country_code: '', country: '', admin1: '' };
+  }
+};
+
+const getSavedJson = (key, fallback) => {
+  try {
+    return JSON.parse(localStorage.getItem(key) || '') || fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+export const useWeatherData = () => {
+  const [weatherData, setWeatherData] = useState(null);
+  const [forecastData, setForecastData] = useState(null);
+  const [aqi, setAqi] = useState(null);
+  const [location, setLocation] = useState('');
+  const [coordinates, setCoordinates] = useState({ lat: null, lon: null });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [unit, setUnit] = useState(() => localStorage.getItem(UNIT_KEY) || 'metric');
+  const [favorites, setFavorites] = useState(() => {
+    const saved = getSavedJson('weatherFavorites', []);
+    return Array.isArray(saved)
+      ? saved.map((item) => (typeof item === 'string' ? { name: item, temp: null, icon: '01d', desc: '' } : item))
+      : [];
+  });
+
+  const unitRef = useRef(unit);
+  const coordinatesRef = useRef(coordinates);
   const cityInfoRef = useRef({ name: '', country_code: '', country: '', admin1: '' });
-
-  // Tracks the last successfully-fetched combo to deduplicate calls
   const lastFetchRef = useRef({ lat: null, lon: null, unit: null });
+  const requestIdRef = useRef(0);
+  unitRef.current = unit;
+  coordinatesRef.current = coordinates;
 
-  // ── Favorites ─────────────────────────────────────────────────────────────
-  const toggleUnit = () => setUnit(prev => prev === 'metric' ? 'imperial' : 'metric');
+  const toggleUnit = () => {
+    setUnit((current) => {
+      const next = current === 'metric' ? 'imperial' : 'metric';
+      localStorage.setItem(UNIT_KEY, next);
+      setFavorites((savedPlaces) => {
+        const updated = savedPlaces.map((place) => ({ ...place, temp: null }));
+        localStorage.setItem('weatherFavorites', JSON.stringify(updated));
+        return updated;
+      });
+      return next;
+    });
+  };
 
   const addToFavorites = (data) => {
-    if (!favorites.some(f => f.name === data.name)) {
-      const newFav = {
-        name:    data.name,
-        temp:    data.main.temp,
-        icon:    data.weather[0].icon,
-        desc:    data.weather[0].main,
-        country: data.sys.country,
-      };
-      const updated = [newFav, ...favorites].slice(0, 5);
-      setFavorites(updated);
+    setFavorites((current) => {
+      if (current.some((favorite) => favorite.name === data.name && favorite.country === data.sys.country)) return current;
+      const updated = [
+        {
+          name: data.name,
+          temp: data.main.temp,
+          icon: data.weather[0].icon,
+          desc: data.weather[0].condition,
+          country: data.sys.country,
+        },
+        ...current,
+      ].slice(0, 6);
       localStorage.setItem('weatherFavorites', JSON.stringify(updated));
-    }
+      return updated;
+    });
   };
 
   const removeFromFavorites = (cityName) => {
-    const updated = favorites.filter(f => f.name !== cityName);
-    setFavorites(updated);
-    localStorage.setItem('weatherFavorites', JSON.stringify(updated));
+    setFavorites((current) => {
+      const updated = current.filter((favorite) => favorite.name !== cityName);
+      localStorage.setItem('weatherFavorites', JSON.stringify(updated));
+      return updated;
+    });
   };
 
-  // ── Core fetch ─────────────────────────────────────────────────────────────
-  const fetchAllData = async (lat, lon) => {
+  const fetchAllData = useCallback(async (lat, lon, { force = false } = {}) => {
     const currentUnit = unitRef.current;
+    if (!force && lastFetchRef.current.lat === lat && lastFetchRef.current.lon === lon && lastFetchRef.current.unit === currentUnit) return;
 
-    // Skip if we already have fresh data for this exact combo (prevents double-fetch)
-    if (
-      lastFetchRef.current.lat   === lat  &&
-      lastFetchRef.current.lon   === lon  &&
-      lastFetchRef.current.unit  === currentUnit
-    ) return;
-
-    const tempUnit = currentUnit === 'metric' ? 'celsius'     : 'fahrenheit';
-    const windUnit = currentUnit === 'metric' ? 'ms'          : 'mph';
-
+    const requestId = ++requestIdRef.current;
     try {
       setError('');
       setLoading(true);
-      lastFetchRef.current = { lat, lon, unit: currentUnit };
-
-      // Fire weather + air-quality requests in parallel
-      const [weatherRes, aqRes] = await Promise.all([
+      const [weatherResponse, airResponse] = await Promise.all([
         axios.get(WEATHER_URL, {
           params: {
-            latitude:         lat,
-            longitude:        lon,
-            current: [
-              'temperature_2m', 'relative_humidity_2m', 'apparent_temperature',
-              'is_day', 'precipitation', 'weather_code', 'cloud_cover',
-              'pressure_msl', 'wind_speed_10m', 'wind_direction_10m', 'wind_gusts_10m',
-            ].join(','),
-            hourly: [
-              'temperature_2m', 'relative_humidity_2m', 'apparent_temperature',
-              'precipitation_probability', 'weather_code',
-              'wind_speed_10m', 'wind_direction_10m',
-              'uv_index', 'visibility', 'pressure_msl',
-            ].join(','),
-            daily: [
-              'weather_code', 'temperature_2m_max', 'temperature_2m_min',
-              'sunrise', 'sunset', 'uv_index_max', 'precipitation_probability_max',
-            ].join(','),
-            temperature_unit: tempUnit,
-            wind_speed_unit:  windUnit,
-            timezone:         'auto',
-            forecast_days:    7,
+            latitude: lat,
+            longitude: lon,
+            current: 'temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,pressure_msl,wind_speed_10m,wind_direction_10m,wind_gusts_10m',
+            hourly: 'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation_probability,weather_code,wind_speed_10m,wind_direction_10m,uv_index,visibility,pressure_msl',
+            daily: 'weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,precipitation_probability_max',
+            temperature_unit: currentUnit === 'metric' ? 'celsius' : 'fahrenheit',
+            wind_speed_unit: currentUnit === 'metric' ? 'ms' : 'mph',
+            timezone: 'auto',
+            timeformat: 'unixtime',
+            forecast_days: 7,
           },
         }),
-        // AQI is non-critical — never let it break the main flow
-        axios.get(AIR_QUALITY_URL, {
-          params: {
-            latitude:  lat,
-            longitude: lon,
-            current: [
-              'pm10', 'pm2_5', 'carbon_monoxide', 'nitrogen_dioxide',
-              'ozone', 'sulphur_dioxide', 'dust', 'european_aqi',
-            ].join(','),
-            timezone: 'auto',
-          },
-        }).catch(() => ({ data: null })),
+        axios
+          .get(AIR_QUALITY_URL, {
+            params: {
+              latitude: lat,
+              longitude: lon,
+              current: 'pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,ozone,sulphur_dioxide,dust,european_aqi',
+              timezone: 'auto',
+            },
+          })
+          .catch(() => ({ data: null })),
       ]);
 
+      if (requestId !== requestIdRef.current) return;
       const cityInfo = cityInfoRef.current;
-      const { weatherData: wd, normalisedAqi } = normaliseWeather(weatherRes.data, aqRes.data, cityInfo);
-      const fd = normaliseForecast(weatherRes.data);
-
-      setWeatherData(wd);
-      setForecastData(fd);
+      const { weatherData: nextWeather, normalisedAqi } = normaliseWeather(weatherResponse.data, airResponse.data, cityInfo);
+      setWeatherData(nextWeather);
+      setForecastData(normaliseForecast(weatherResponse.data));
       setAqi(normalisedAqi);
-
-      // Open-Meteo snaps requested coordinates to its weather grid, so the
-      // returned lat/lon usually differ slightly from what we asked for. Sync
-      // the dedup ref to these snapped coords BEFORE updating coordinate state —
-      // otherwise the coordinates effect treats them as a brand-new location,
-      // reverse-geocodes them, and overwrites the searched city name with a
-      // second fetch (e.g. London → "City of Westminster").
-      lastFetchRef.current = {
-        lat: weatherRes.data.latitude,
-        lon: weatherRes.data.longitude,
-        unit: currentUnit,
-      };
-      setCoordinates({ lat: weatherRes.data.latitude, lon: weatherRes.data.longitude });
-    } catch (err) {
-      console.error('Weather fetch error:', err);
-      setWeatherData(null);
-      setForecastData(null);
-      setError('Unable to fetch weather data.');
+      setCoordinates({ lat: weatherResponse.data.latitude, lon: weatherResponse.data.longitude });
+      lastFetchRef.current = { lat: weatherResponse.data.latitude, lon: weatherResponse.data.longitude, unit: currentUnit };
+      localStorage.setItem(LAST_LOCATION_KEY, JSON.stringify({ ...cityInfo, lat, lon }));
+    } catch (fetchError) {
+      if (requestId !== requestIdRef.current) return;
+      lastFetchRef.current = { lat: null, lon: null, unit: null };
+      setError('Weather data is unavailable right now. Please try again.');
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) setLoading(false);
     }
-  };
+  }, []);
 
-  // ── City-name search (Open-Meteo geocoding) ────────────────────────────────
-  const fetchByCity = async (city) => {
-    if (!city.trim()) return;
+  const fetchByCity = useCallback(async (city) => {
+    const term = city.trim();
+    if (!term) return;
+    const requestId = ++requestIdRef.current;
     try {
       setError('');
       setLoading(true);
-
-      const res = await axios.get(GEOCODE_URL, {
-        params: { name: city.trim(), count: 1, language: 'en', format: 'json' },
+      const response = await axios.get(GEOCODE_URL, {
+        params: { name: term, count: 1, language: 'en', format: 'json' },
       });
-
-      const results = res.data.results;
-      if (!results?.length) {
-        setWeatherData(null);
-        setError('Location not found.');
-        setLoading(false);
-        return;
-      }
-
-      const r = results[0];
+      if (requestId !== requestIdRef.current) return;
+      const result = response.data.results?.[0];
+      if (!result) throw new Error('Location not found');
       cityInfoRef.current = {
-        name:         r.name,
-        country_code: r.country_code?.toUpperCase() ?? '',
-        country:      r.country ?? '',
-        admin1:       r.admin1  ?? '',
+        name: result.name,
+        country_code: result.country_code?.toUpperCase() ?? '',
+        country: result.country ?? '',
+        admin1: result.admin1 ?? '',
       };
-
-      // Reset dedup ref so the new city is always fetched
       lastFetchRef.current = { lat: null, lon: null, unit: null };
-      await fetchAllData(r.latitude, r.longitude);
+      await fetchAllData(result.latitude, result.longitude, { force: true });
     } catch {
-      setWeatherData(null);
-      setError('Location not found.');
-      setLoading(false);
-    }
-  };
-
-  // ── Initial load — browser geolocation ────────────────────────────────────
-  useEffect(() => {
-    if (!navigator.geolocation) return;
-    setLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setCoordinates({ lat: latitude, lon: longitude });
-      },
-      () => {
-        setError('Location access denied. Search for a city above.');
+      if (requestId === requestIdRef.current) {
+        setError(`We couldn't find “${term}”. Try a city and country name.`);
         setLoading(false);
       }
-    );
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Re-fetch when unit toggles ─────────────────────────────────────────────
-  useEffect(() => {
-    const { lat, lon } = coordinates;
-    if (!lat || !lon) return;
-    lastFetchRef.current = { ...lastFetchRef.current, unit: null };
-    fetchAllData(lat, lon);
-  }, [unit]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Re-fetch when coords change externally (header "use my location") ──────
-  useEffect(() => {
-    const { lat, lon } = coordinates;
-    if (!lat || !lon) return;
-
-    // Avoid double fetch / double geocode if coordinates match last fetched coordinates
-    if (lastFetchRef.current.lat === lat && lastFetchRef.current.lon === lon) {
-      return;
     }
+  }, [fetchAllData]);
 
-    const fetchCoordsData = async () => {
-      cityInfoRef.current = await reverseGeocode(lat, lon);
-      fetchAllData(lat, lon);
-    };
-    fetchCoordsData();
-  }, [coordinates.lat, coordinates.lon]); // eslint-disable-line react-hooks/exhaustive-deps
+  const refreshWeather = useCallback(() => {
+    if (coordinates.lat == null || coordinates.lon == null) return;
+    fetchAllData(coordinates.lat, coordinates.lon, { force: true });
+  }, [coordinates.lat, coordinates.lon, fetchAllData]);
 
-  // ── Fetch when city search changes ────────────────────────────────────────
+  const searchLocation = useCallback((city) => {
+    const term = city.trim();
+    if (!term) return;
+    setLocation((current) => {
+      if (current === term) fetchByCity(term);
+      return term;
+    });
+  }, [fetchByCity]);
+
+  useEffect(() => {
+    const saved = getSavedJson(LAST_LOCATION_KEY, null);
+    if (saved?.lat != null && saved?.lon != null) {
+      cityInfoRef.current = saved;
+      setCoordinates({ lat: saved.lat, lon: saved.lon });
+    } else {
+      setLocation(DEFAULT_LOCATION);
+    }
+  }, []);
+
   useEffect(() => {
     if (location) fetchByCity(location);
-  }, [location]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [location, fetchByCity]);
+
+  useEffect(() => {
+    if (!weatherData) return;
+    setFavorites((current) => {
+      let changed = false;
+      const updated = current.map((favorite) => {
+        if (favorite.name !== weatherData.name || favorite.country !== weatherData.sys.country) return favorite;
+        changed = true;
+        return {
+          ...favorite,
+          temp: weatherData.main.temp,
+          icon: weatherData.weather[0].icon,
+          desc: weatherData.weather[0].condition,
+        };
+      });
+      if (changed) localStorage.setItem('weatherFavorites', JSON.stringify(updated));
+      return changed ? updated : current;
+    });
+  }, [weatherData]);
+
+  useEffect(() => {
+    if (coordinates.lat == null || coordinates.lon == null) return;
+    if (lastFetchRef.current.lat === coordinates.lat && lastFetchRef.current.lon === coordinates.lon) return;
+    const fetchCoordinates = async () => {
+      cityInfoRef.current = await reverseGeocode(coordinates.lat, coordinates.lon);
+      await fetchAllData(coordinates.lat, coordinates.lon);
+    };
+    fetchCoordinates();
+  }, [coordinates.lat, coordinates.lon, fetchAllData]);
+
+  useEffect(() => {
+    const { lat, lon } = coordinatesRef.current;
+    if (lat == null || lon == null) return;
+    lastFetchRef.current = { ...lastFetchRef.current, unit: null };
+    fetchAllData(lat, lon, { force: true });
+  }, [unit, fetchAllData]);
 
   return {
-    weatherData, forecastData, aqi,
-    location, setLocation,
-    coordinates, setCoordinates,
-    loading, error,
-    unit, toggleUnit,
-    favorites, addToFavorites, removeFromFavorites,
+    weatherData,
+    forecastData,
+    aqi,
+    location,
+    setLocation: searchLocation,
+    coordinates,
+    setCoordinates,
+    loading,
+    error,
+    unit,
+    toggleUnit,
+    favorites,
+    addToFavorites,
+    removeFromFavorites,
+    refreshWeather,
   };
 };

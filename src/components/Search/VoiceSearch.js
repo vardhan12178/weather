@@ -3,14 +3,13 @@ import { Mic } from 'react-feather';
 
 const VoiceSearch = ({ setLocation }) => {
   const [isListening, setIsListening] = useState(false);
+  const [isSupported] = useState(() => 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
 
   const handleVoiceSearch = () => {
-    if (!('webkitSpeechRecognition' in window)) {
-      alert("Voice search is not supported in this browser.");
-      return;
-    }
+    if (!isSupported) return;
 
-    const recognition = new window.webkitSpeechRecognition();
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new Recognition();
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = 'en-US';
@@ -36,13 +35,14 @@ const VoiceSearch = ({ setLocation }) => {
     <button
       type="button"
       onClick={handleVoiceSearch}
-      className={`p-2 rounded-full transition-all duration-300 focus:outline-none ${
+      disabled={!isSupported}
+      className={`grid h-10 w-10 place-items-center rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 disabled:cursor-not-allowed disabled:opacity-35 ${
         isListening 
           ? 'bg-red-500 text-white animate-pulse shadow-md scale-110' 
           : 'text-gray-500 dark:text-gray-400 hover:text-blue-500 hover:bg-black/5 dark:hover:bg-white/10'
       }`}
-      aria-label="Voice Search"
-      title="Search by voice"
+      aria-label={isSupported ? 'Search by voice' : 'Voice search is unavailable'}
+      title={isSupported ? 'Search by voice' : 'Voice search is unavailable in this browser'}
     >
       <Mic size={18} className={isListening ? 'animate-bounce' : ''} />
     </button>

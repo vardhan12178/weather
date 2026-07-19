@@ -23,7 +23,7 @@ const getWindDirection = (deg) => {
 
 // ─── Borderless Metric Widget Cell ───────────────────────────────────────────
 const MetricWidget = ({ icon: Icon, title, value, unitLabel, description, children }) => (
-  <div className="flex flex-col justify-between min-h-[125px] p-3.5 sm:p-4 rounded-[20px] hover:bg-slate-950/[0.04] dark:hover:bg-white/5 transition-all duration-300">
+  <div className="weather-metric">
     <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
       {Icon && <Icon size={12} className="opacity-70" />}
       <span>{title}</span>
@@ -61,7 +61,9 @@ const WeatherStats = ({ weatherData, unit, mainCardClass, textColor, textSubColo
     const alpha = ((a * t) / (b + t)) + Math.log(h / 100);
     return (b * alpha) / (a - alpha);
   };
-  const dewPoint = calculateDewPoint(temp, humidity);
+  const tempC = unit === 'metric' ? temp : (temp - 32) * (5 / 9);
+  const dewPointC = calculateDewPoint(tempC, humidity);
+  const dewPoint = unit === 'metric' ? dewPointC : (dewPointC * 9) / 5 + 32;
 
   // Formatting local time helper
   const formatTime = (timestamp) => {
@@ -122,20 +124,22 @@ const WeatherStats = ({ weatherData, unit, mainCardClass, textColor, textSubColo
 
   // Visibility progress percentage
   const visKm = visibility / 1000;
+  const visibilityValue = unit === 'metric' ? visKm : visKm * 0.621371;
+  const visibilityUnit = unit === 'metric' ? 'km' : 'mi';
   const visPct = Math.max(0, Math.min(100, (visKm / 10) * 100));
 
   // Pressure progress percentage (relative to 980hPa - 1040hPa range)
   const pressPct = Math.max(0, Math.min(100, ((pressure - 980) / 60) * 100));
 
   return (
-    <div className={`p-4 sm:p-7 md:p-8 ${mainCardClass} w-full flex flex-col gap-6`}>
-      {/* Card Header Title */}
-      <h3 className={`${textColor} font-bold text-xs uppercase tracking-wider opacity-70`}>
-        Weather details
-      </h3>
+    <div className={`weather-details-content ${mainCardClass}`}>
+      <div>
+        <p className="section-eyebrow">At a glance</p>
+        <h2 className={`section-title ${textColor}`}>Weather details</h2>
+      </div>
 
       {/* Grid structure - borderless grid cells inside the card */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6">
+      <div className="weather-metrics-grid">
         
         {/* 1. Wind Widget with Compass */}
         <MetricWidget
@@ -253,8 +257,8 @@ const WeatherStats = ({ weatherData, unit, mainCardClass, textColor, textSubColo
         >
           <div className="flex flex-col gap-1.5">
             <div className="flex items-baseline">
-              <span className="text-3xl font-semibold text-slate-900 dark:text-white tnum">{Math.round(visKm)}</span>
-              <span className="text-sm font-bold text-slate-400 dark:text-slate-500 ml-0.5">km</span>
+              <span className="text-3xl font-semibold text-slate-900 dark:text-white tnum">{Math.round(visibilityValue)}</span>
+              <span className="text-sm font-bold text-slate-400 dark:text-slate-500 ml-0.5">{visibilityUnit}</span>
             </div>
             {/* Visibility progress slider with indicator dot */}
             <div className="relative w-full h-1.5 bg-slate-950/10 dark:bg-white/10 rounded-full mt-1.5">
