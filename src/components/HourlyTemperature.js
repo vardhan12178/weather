@@ -23,7 +23,7 @@ const HourlyTemperature = ({ forecastData, isDay, textColor = 'text-white', text
           const isNow = index === 0;
           const timeLabel = isNow
             ? 'Now'
-            : new Date(hour.dt * 1000).toLocaleTimeString([], { hour: 'numeric', hour12: true });
+            : hour.localTimeLabel;
 
           // Interactive theme highlights for the first card (Now) vs others
           const cardBg = isNow
@@ -36,7 +36,7 @@ const HourlyTemperature = ({ forecastData, isDay, textColor = 'text-white', text
               initial={{ opacity: 0, scale: 0.92, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ duration: 0.4, delay: index * 0.04 }}
-              className={`flex-shrink-0 w-[100px] snap-start p-3.5 rounded-[22px] border backdrop-blur-2xl flex flex-col items-center justify-between transition-all duration-300 hover:translate-y-[-4px] hover:shadow-md ${cardBg}`}
+              className={`flex-shrink-0 w-[104px] snap-start p-3.5 rounded-[22px] border backdrop-blur-2xl flex flex-col items-center justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-md ${cardBg}`}
             >
               {/* Time Indicator */}
               <span className={`text-[11px] font-bold tracking-tight ${isNow ? 'text-brand-600 dark:text-brand-300' : textColor}`}>
@@ -76,4 +76,3 @@ const HourlyTemperature = ({ forecastData, isDay, textColor = 'text-white', text
 };
 
 export default HourlyTemperature;
-

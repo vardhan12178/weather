@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { RefreshCw, Star, List, BarChart2 } from 'react-feather';
+import { BarChart2, Clock, Droplet, List, RefreshCw, Star, Wind } from 'react-feather';
 import WeatherIcon from './WeatherIcon';
 import WeatherAlerts from './WeatherAlerts';
 import WeatherRecommendations from './WeatherRecommendations';
@@ -9,283 +8,185 @@ import TemperatureChart from './TemperatureChart';
 import PrecipitationChart from './PrecipitationChart';
 import WeatherForecast from './WeatherForecast';
 
-// ── AQI Status Metadata ────────────────────────────────────────────────────────
 const getAQIStatus = (index) => {
-  switch (index) {
-    case 1: return { label: 'Good',      emoji: '😊', colorClass: 'bg-emerald-500', textClass: 'text-emerald-500' };
-    case 2: return { label: 'Fair',      emoji: '🙂', colorClass: 'bg-green-500', textClass: 'text-green-500' };
-    case 3: return { label: 'Moderate',  emoji: '😐', colorClass: 'bg-amber-500', textClass: 'text-amber-500' };
-    case 4: return { label: 'Poor',      emoji: '😷', colorClass: 'bg-orange-500', textClass: 'text-orange-500' };
-    case 5: return { label: 'Hazardous', emoji: '🚨', colorClass: 'bg-red-600', textClass: 'text-red-500' };
-    default: return { label: 'Unknown',  emoji: '❓', colorClass: 'bg-slate-500', textClass: 'text-slate-500' };
-  }
+  const statuses = {
+    1: { label: 'Good', color: 'bg-emerald-500', text: 'text-emerald-700 dark:text-emerald-300' },
+    2: { label: 'Fair', color: 'bg-lime-500', text: 'text-lime-700 dark:text-lime-300' },
+    3: { label: 'Moderate', color: 'bg-amber-500', text: 'text-amber-700 dark:text-amber-300' },
+    4: { label: 'Poor', color: 'bg-orange-500', text: 'text-orange-700 dark:text-orange-300' },
+    5: { label: 'Very poor', color: 'bg-rose-500', text: 'text-rose-700 dark:text-rose-300' },
+  };
+  return statuses[index] || { label: 'Unavailable', color: 'bg-slate-400', text: 'text-slate-600 dark:text-slate-300' };
 };
 
-// ── AQI Soft Translucent Background Gradient Theme ────────────────────────────
-const getAQITheme = (index) => {
-  switch (index) {
-    case 1: // Good
-      return 'from-emerald-500/10 via-emerald-500/5 to-transparent border-emerald-500/20 text-emerald-800 dark:text-emerald-300';
-    case 2: // Fair
-      return 'from-green-500/10 via-green-500/5 to-transparent border-green-500/20 text-green-800 dark:text-green-300';
-    case 3: // Moderate
-      return 'from-amber-500/10 via-amber-500/5 to-transparent border-amber-500/20 text-amber-800 dark:text-amber-300';
-    case 4: // Poor
-      return 'from-orange-500/10 via-orange-500/5 to-transparent border-orange-500/20 text-orange-850 dark:text-orange-300';
-    case 5: // Hazardous
-      return 'from-red-500/10 via-red-500/5 to-transparent border-red-500/20 text-red-800 dark:text-red-300';
-    default:
-      return 'from-slate-500/10 via-slate-500/5 to-transparent border-slate-500/20 text-slate-800 dark:text-slate-355';
-  }
-};
+const formatLocationDate = (timestamp, timezone) =>
+  new Date((timestamp + timezone) * 1000).toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
 
-const formatLocalTime = (timezoneOffset = 0) => {
-  const localTime = new Date(Date.now() + timezoneOffset * 1000);
-  return localTime.toLocaleTimeString([], {
+const formatLocationTime = (timezone) =>
+  new Date(Date.now() + timezone * 1000).toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: true,
-    timeZone: 'UTC'
+    timeZone: 'UTC',
   });
-};
 
 const WeatherCard = ({
   weatherData,
   forecastData,
   aqi,
-  setCoordinates,
   unit,
   toggleUnit,
+  refreshWeather,
+  isRefreshing,
   isFavorite,
   addToFavorites,
   removeFromFavorites,
   favorites,
-  textColor = 'text-white',
-  textSubColor = 'text-white/50',
-  isDay,
 }) => {
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState('list');
-
   if (!weatherData) return null;
 
-  const { name, weather, main, dt, coord, sys, timezone } = weatherData;
-  const { temp, feels_like, temp_max, temp_min } = main;
+  const { name, weather, main, wind, dt, sys, timezone } = weatherData;
   const summary = weather[0];
-
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    if (setCoordinates && coord) setCoordinates(coord);
-    setTimeout(() => setIsRefreshing(false), 800);
-  };
-
-  const handleFavoriteClick = () => {
-    if (isFavorite) {
-      removeFromFavorites(name);
-    } else {
-      addToFavorites(weatherData);
-    }
-  };
-
+  const isMetric = unit === 'metric';
   const aqiStatus = getAQIStatus(aqi?.main?.aqi);
-  const aqiThemeClass = getAQITheme(aqi?.main?.aqi);
+  const favoriteLimitReached = !isFavorite && favorites?.length >= 6;
+
+  const handleFavorite = () => {
+    if (isFavorite) removeFromFavorites(name);
+    else addToFavorites(weatherData);
+  };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 15 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="relative w-full flex flex-col h-full justify-between"
-    >
-      {/* 1. Header Information Row */}
-      <div className="flex items-center justify-between gap-4 w-full">
-        <div>
-          <p className="text-[10px] font-extrabold uppercase tracking-[0.25em] text-slate-500 dark:text-sky-300/80">
-            {new Date(dt * 1000).toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}
-          </p>
-          <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900 dark:text-white mt-0.5">
-            {name}
-            {sys?.country && <span className="text-lg font-bold text-slate-400 dark:text-slate-500 ml-1.5">{sys.country}</span>}
-          </h2>
-          <div className="flex flex-wrap items-center gap-2 mt-1.5 text-[10px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-            <span>Local Time {formatLocalTime(timezone)}</span>
-            <span className="text-slate-300 dark:text-slate-700/60 font-black">•</span>
-            <span>
-              {coord?.lat && coord?.lon
-                ? `Lat ${coord.lat.toFixed(2)} | Lon ${coord.lon.toFixed(2)}`
-                : 'Current Location'}
-            </span>
-          </div>
-        </div>
+    <div className="weather-primary-flow">
+      <section className="weather-content-section weather-hero-section" aria-labelledby="current-weather-heading">
+        <div className="relative p-5 sm:p-7 lg:p-9">
+          <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-sky-400/15 blur-3xl dark:bg-sky-300/10" />
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          <button
-            onClick={toggleUnit}
-            className="w-9 h-9 rounded-full bg-slate-955/5 hover:bg-slate-955/10 dark:bg-white/10 dark:hover:bg-white/20 text-slate-800 dark:text-white flex items-center justify-center text-xs font-black transition-all border border-slate-955/5 dark:border-white/10 active:scale-95 shadow-sm"
-            title={unit === 'metric' ? 'Switch to Fahrenheit' : 'Switch to Celsius'}
-          >
-            °{unit === 'metric' ? 'F' : 'C'}
-          </button>
-          <button
-            onClick={handleRefresh}
-            className="w-9 h-9 rounded-full bg-slate-955/5 hover:bg-slate-955/10 dark:bg-white/10 dark:hover:bg-white/20 text-slate-800 dark:text-white flex items-center justify-center transition-all border border-slate-955/5 dark:border-white/10 active:scale-95 shadow-sm"
-            title="Refresh weather"
-          >
-            <RefreshCw size={13} className={isRefreshing ? 'animate-spin' : ''} />
-          </button>
-          <button
-            onClick={handleFavoriteClick}
-            disabled={!isFavorite && favorites?.length >= 5}
-            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all border active:scale-95 shadow-sm ${
-              isFavorite
-                ? 'bg-amber-400 border-amber-400 text-slate-950 shadow-md shadow-amber-400/20 hover:bg-amber-300 hover:border-amber-300'
-                : 'bg-slate-955/5 hover:bg-slate-955/10 dark:bg-white/10 dark:hover:bg-white/20 text-slate-800 dark:text-white border-slate-955/5 dark:border-white/10'
-            }`}
-            title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-          >
-            <Star size={13} className={isFavorite ? 'fill-current' : ''} />
-          </button>
-        </div>
-      </div>
-
-      {/* 2. Main Current Condition & Core Stats Section */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-6 my-8">
-        <div className="flex items-center gap-5">
-          <div className="relative">
-            <div className="absolute inset-0 bg-sky-500/15 dark:bg-sky-400/10 blur-3xl rounded-full" />
-            <WeatherIcon
-              code={summary.icon}
-              className="relative w-28 h-28 sm:w-36 sm:h-36 drop-shadow-md select-none"
-              size={144}
-            />
-          </div>
-
-          <div className="leading-none">
-            <div className="flex items-start">
-              <span className="text-7xl sm:text-8xl font-black tracking-tighter text-slate-900 dark:text-white select-none">
-                {Math.round(temp)}
-              </span>
-              <span className="text-4xl sm:text-5xl font-light text-slate-400 dark:text-sky-300/60 mt-1 select-none">°</span>
+          <div className="relative flex flex-wrap items-start justify-between gap-5">
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{formatLocationDate(dt, timezone)}</p>
+              <h1 id="current-weather-heading" className="mt-2 flex flex-wrap items-baseline gap-x-2 text-3xl font-black tracking-[-0.055em] text-slate-950 dark:text-white sm:text-5xl">
+                <span>{name}</span>
+                {sys.country && <span className="text-lg font-bold tracking-normal text-slate-400 dark:text-slate-500">, {sys.country}</span>}
+              </h1>
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                <span className="inline-flex items-center gap-1.5"><Clock size={13} /> Local time {formatLocationTime(timezone)}</span>
+                <span>Updated moments ago</span>
+              </div>
             </div>
-            <p className="text-lg font-bold text-slate-800 dark:text-slate-100 capitalize mt-2.5 tracking-tight">
-              {summary.description}
-            </p>
-          </div>
-        </div>
 
-        {/* Quick High/Low apparent sub-grid */}
-        <div className="grid grid-cols-2 gap-3 w-full sm:w-auto min-w-[240px]">
-          <div className="rounded-2xl bg-slate-955/5 dark:bg-white/5 border border-slate-955/5 dark:border-white/5 p-4 flex flex-col justify-between shadow-sm">
-            <span className="text-[9px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500">Feels Like</span>
-            <span className="text-xl font-black text-slate-900 dark:text-white mt-1.5">{Math.round(feels_like)}°</span>
-          </div>
-
-          <div className="rounded-2xl bg-slate-955/5 dark:bg-white/5 border border-slate-955/5 dark:border-white/5 p-4 flex flex-col justify-between shadow-sm">
-            <span className="text-[9px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500">High / Low</span>
-            <span className="text-lg font-black text-slate-900 dark:text-white mt-1.5">
-              {Math.round(temp_max)}° <span className="text-slate-400 dark:text-slate-500 font-medium">/</span> {Math.round(temp_min)}°
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Integrated Alerts & Recommendations Panel */}
-      <div className="flex flex-col gap-3 w-full mb-6">
-        <WeatherAlerts weatherData={weatherData} unit={unit} />
-        <WeatherRecommendations weatherData={weatherData} />
-      </div>
-
-      {/* 4. Air Quality Summary Bar - upgraded from dull gray to soft dynamic gradient card */}
-      {aqi && (
-        <div className={`w-full mb-6 p-4 rounded-2xl bg-gradient-to-r ${aqiThemeClass} border backdrop-blur-md flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-soft`}>
-          <div className="flex items-center gap-2.5">
-            <div className={`w-2.5 h-2.5 rounded-full ${aqiStatus.colorClass} shadow-sm animate-pulse`} />
-            <span className="text-xs font-bold">
-              Air Quality is <span className={aqiStatus.textClass}>{aqiStatus.label}</span> (AQI {aqi.main.aqi})
-            </span>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={toggleUnit} className="premium-icon-button font-extrabold" aria-label={isMetric ? 'Switch to Fahrenheit' : 'Switch to Celsius'}>
+                °{isMetric ? 'F' : 'C'}
+              </button>
+              <button type="button" onClick={refreshWeather} className="premium-icon-button" aria-label="Refresh weather" disabled={isRefreshing}>
+                <RefreshCw size={17} className={isRefreshing ? 'animate-spin' : ''} />
+              </button>
+              <button type="button" onClick={handleFavorite} className={`premium-icon-button ${isFavorite ? 'border-amber-300 bg-amber-300 text-amber-950 dark:bg-amber-300 dark:text-amber-950' : ''}`} aria-label={isFavorite ? 'Remove from saved places' : 'Save this place'} disabled={favoriteLimitReached} title={favoriteLimitReached ? 'You can save up to 6 places' : undefined}>
+                <Star size={17} className={isFavorite ? 'fill-current' : ''} />
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2.5 overflow-x-auto py-0.5 hide-scrollbar">
-            {[
-              { key: 'pm2_5', label: 'PM₂.₅' },
-              { key: 'pm10',  label: 'PM₁₀' },
-              { key: 'no2',   label: 'NO₂' },
-              { key: 'o3',    label: 'O₃' },
-            ].map(({ key, label }) =>
-              aqi.components[key] != null ? (
-                <div key={key} className="flex items-center gap-1 bg-white/40 dark:bg-white/10 rounded-full px-2.5 py-0.5 border border-slate-955/10 dark:border-white/10">
-                  <span className="text-[9px] opacity-60 font-bold">{label}</span>
-                  <span className="text-xs font-extrabold">{aqi.components[key].toFixed(0)}</span>
+          <div className="relative mt-8 grid items-center gap-7 md:grid-cols-[minmax(0,1.15fr)_minmax(290px,.85fr)] lg:mt-10">
+            <div className="flex items-center gap-3 sm:gap-7">
+              <div className="relative grid h-28 w-28 shrink-0 place-items-center sm:h-40 sm:w-40">
+                <span className="absolute inset-3 rounded-full bg-white/45 blur-2xl dark:bg-sky-300/10" />
+                <WeatherIcon code={summary.icon} size={144} className="relative h-28 w-28 drop-shadow-xl sm:h-40 sm:w-40" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-start text-slate-950 dark:text-white">
+                  <span className="tnum text-[5.5rem] font-black leading-[.82] tracking-[-0.09em] sm:text-[7.5rem]">{Math.round(main.temp)}</span>
+                  <span className="mt-1 text-4xl font-light text-slate-400 sm:text-5xl">°</span>
                 </div>
-              ) : null
-            )}
-          </div>
-        </div>
-      )}
+                <p className="mt-4 text-lg font-bold capitalize tracking-tight text-slate-800 dark:text-slate-100 sm:text-xl">{summary.description}</p>
+              </div>
+            </div>
 
-      {/* Divider rule */}
-      <div className="h-[1px] bg-slate-955/5 dark:bg-white/5 my-2" />
-
-      {/* 5. Next 24 Hours Timeline Section */}
-      {forecastData && (
-        <div className="mt-6 w-full">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className={`${textColor} font-extrabold text-[10px] uppercase tracking-widest opacity-60`}>
-              Next 24 Hours
-            </h3>
-            <div className="flex gap-1 bg-black/5 dark:bg-white/10 rounded-full p-1 border border-slate-955/5 dark:border-white/5 shadow-sm">
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded-full transition-all duration-300 ${
-                  viewMode === 'list'
-                    ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-300 shadow-md scale-105'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-sky-600 dark:hover:text-sky-300'
-                }`}
-                title="List view"
-              >
-                <List size={14} />
-              </button>
-              <button
-                onClick={() => setViewMode('chart')}
-                className={`p-2 rounded-full transition-all duration-300 ${
-                  viewMode === 'chart'
-                    ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-300 shadow-md scale-105'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-sky-600 dark:hover:text-sky-300'
-                }`}
-                title="Chart view"
-              >
-                <BarChart2 size={14} />
-              </button>
+            <div className="weather-quick-grid">
+              <div className="weather-quick-stat">
+                <span>Feels like</span>
+                <strong>{Math.round(main.feels_like)}°</strong>
+              </div>
+              <div className="weather-quick-stat">
+                <span>High / low</span>
+                <strong>{Math.round(main.temp_max)}° <em>/</em> {Math.round(main.temp_min)}°</strong>
+              </div>
+              <div className="weather-quick-stat">
+                <span className="inline-flex items-center gap-1.5"><Droplet size={12} /> Humidity</span>
+                <strong>{main.humidity}%</strong>
+              </div>
+              <div className="weather-quick-stat">
+                <span className="inline-flex items-center gap-1.5"><Wind size={12} /> Wind</span>
+                <strong>{Math.round(wind.speed)} <small>{isMetric ? 'm/s' : 'mph'}</small></strong>
+              </div>
             </div>
           </div>
 
+          <div className="relative mt-7 grid gap-3">
+            <WeatherAlerts weatherData={weatherData} unit={unit} />
+            <WeatherRecommendations weatherData={weatherData} unit={unit} />
+          </div>
+
+          {aqi && (
+            <div className="relative mt-5 flex flex-col justify-between gap-4 rounded-3xl border border-slate-200/60 bg-white/45 p-4 dark:border-white/10 dark:bg-white/5 sm:flex-row sm:items-center">
+              <div className="flex items-center gap-3">
+                <span className={`h-2.5 w-2.5 rounded-full ${aqiStatus.color}`} />
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Air quality</p>
+                  <p className={`text-sm font-extrabold ${aqiStatus.text}`}>{aqiStatus.label} <span className="font-semibold text-slate-500 dark:text-slate-400">· EU AQI {aqi.main.value}</span></p>
+                </div>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0">
+                {[
+                  ['pm2_5', 'PM₂.₅'],
+                  ['pm10', 'PM₁₀'],
+                  ['no2', 'NO₂'],
+                  ['o3', 'O₃'],
+                ].map(([key, label]) => aqi.components[key] != null && (
+                  <span key={key} className="shrink-0 rounded-full bg-slate-950/5 px-3 py-1.5 text-[10px] font-bold text-slate-600 dark:bg-white/10 dark:text-slate-300">{label} <strong className="ml-1 text-slate-950 dark:text-white">{Math.round(aqi.components[key])}</strong></span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {forecastData && (
+        <section className="weather-content-section p-5 sm:p-7 lg:p-9" aria-labelledby="hourly-heading">
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <div>
+              <p className="section-eyebrow">Forecast</p>
+              <h2 id="hourly-heading" className="section-title">Next 24 hours</h2>
+            </div>
+            <div className="view-switcher" aria-label="Hourly forecast view">
+              <button type="button" onClick={() => setViewMode('list')} className={viewMode === 'list' ? 'is-active' : ''} aria-label="Show hourly cards" aria-pressed={viewMode === 'list'}><List size={17} /></button>
+              <button type="button" onClick={() => setViewMode('chart')} className={viewMode === 'chart' ? 'is-active' : ''} aria-label="Show hourly charts" aria-pressed={viewMode === 'chart'}><BarChart2 size={17} /></button>
+            </div>
+          </div>
           {viewMode === 'list' ? (
-            <HourlyTemperature forecastData={forecastData} isDay={isDay} textColor={textColor} textSubColor={textSubColor} />
+            <HourlyTemperature forecastData={forecastData} isDay={weatherData.isDay} textColor="text-slate-950 dark:text-white" textSubColor="text-slate-500 dark:text-slate-400" />
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid gap-8 lg:grid-cols-2">
               <TemperatureChart forecastData={forecastData} unit={unit} />
               <PrecipitationChart forecastData={forecastData} />
             </div>
           )}
-        </div>
+        </section>
       )}
 
-      {/* Divider rule */}
-      <div className="h-[1px] bg-slate-955/5 dark:bg-white/5 my-6" />
-
-      {/* 6. 5-Day Outlook - Integrated directly inside the Weather Sheet */}
       {forecastData && (
-        <div className="w-full">
-          <WeatherForecast
-            forecastData={forecastData}
-            currentTemp={temp}
-            textColor={textColor}
-            textSubColor={textSubColor}
-          />
-        </div>
+        <section className="weather-content-section p-5 sm:p-7 lg:p-9" aria-label="7-day weather outlook">
+          <WeatherForecast forecastData={forecastData} currentTemp={main.temp} textColor="text-slate-950 dark:text-white" textSubColor="text-slate-500 dark:text-slate-400" />
+        </section>
       )}
-    </motion.div>
+    </div>
   );
 };
 

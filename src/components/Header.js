@@ -1,96 +1,81 @@
 import React, { useState } from 'react';
-import { MapPin, Search, X, CloudRain } from 'react-feather';
+import { CloudRain, Navigation, Search, X } from 'react-feather';
 import SearchBox from './Search/SearchBox';
 
-const Header = ({ setLocation, setCoordinates, darkMode }) => {
-  const [isGeolocationLoading, setIsGeolocationLoading] = useState(false);
+const Header = ({ setLocation, setCoordinates }) => {
+  const [isLocating, setIsLocating] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [locationMessage, setLocationMessage] = useState('');
 
   const handleSearch = (term) => {
     setLocation(term);
     setIsSearchOpen(false);
+    setLocationMessage('');
   };
 
   const fetchCurrentLocation = () => {
-    if (!navigator.geolocation) return;
-    setIsGeolocationLoading(true);
+    if (!navigator.geolocation) {
+      setLocationMessage('Location is not supported by this browser.');
+      return;
+    }
+
+    setIsLocating(true);
+    setLocationMessage('');
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCoordinates({ lat: pos.coords.latitude, lon: pos.coords.longitude });
-        setIsGeolocationLoading(false);
+      ({ coords }) => {
+        setCoordinates({ lat: coords.latitude, lon: coords.longitude });
+        setIsLocating(false);
       },
-      () => setIsGeolocationLoading(false)
+      () => {
+        setLocationMessage('Location access was blocked. Search for a city instead.');
+        setIsLocating(false);
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
     );
   };
 
   return (
-    <header className="relative z-50 w-full pt-5 px-4 lg:px-8">
-      <nav className="w-full max-w-7xl mx-auto flex items-center justify-between gap-4 h-16 px-1 sm:px-2">
-        {/* Logo */}
-        <div className="flex items-center gap-3 group select-none">
-          <div className="relative grid place-items-center w-10 h-10 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 text-white shadow-soft group-hover:scale-105 transition-transform duration-300">
-            <CloudRain size={19} />
-          </div>
-          <div className="leading-tight">
-            <h1 className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white">
-              Weatherly
-            </h1>
-            <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500 dark:text-slate-300 font-semibold">
-              Live forecast
-            </p>
-          </div>
-        </div>
+    <header className="premium-header">
+      <nav className="mx-auto flex min-h-[76px] w-full max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8" aria-label="Weather navigation">
+        <a href="#top" className="flex shrink-0 items-center gap-3 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
+          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-slate-950 text-white shadow-lg shadow-slate-950/15 dark:bg-white dark:text-slate-950">
+            <CloudRain size={20} strokeWidth={2.2} />
+          </span>
+          <span className="leading-none">
+            <span className="block text-base font-extrabold tracking-[-0.04em] text-slate-950 dark:text-white">Weatherly</span>
+            <span className="mt-1 block text-[9px] font-bold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">Live intelligence</span>
+          </span>
+        </a>
 
-        {/* Center Search (Desktop) */}
-        <div className="hidden md:block flex-1 max-w-md mx-auto">
+        <div className="hidden min-w-0 flex-1 md:block">
           <SearchBox onSearch={handleSearch} />
         </div>
 
-        {/* Actions (Desktop) */}
-        <div className="hidden md:flex items-center">
-          <button
-            onClick={fetchCurrentLocation}
-            disabled={isGeolocationLoading}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-white/60 dark:bg-white/5 hover:bg-brand-500 hover:text-white text-slate-700 dark:text-slate-100 border border-white/70 dark:border-white/10 hover:border-brand-500 shadow-soft backdrop-blur-md transition-all duration-200 active:scale-95 disabled:opacity-50"
-            title="Use my location"
-          >
-            {isGeolocationLoading ? (
-              <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
-            ) : (
-              <MapPin size={16} />
-            )}
-          </button>
-        </div>
-
-        {/* Mobile controls */}
-        <div className="md:hidden flex items-center gap-2">
-          <button
-            onClick={fetchCurrentLocation}
-            disabled={isGeolocationLoading}
-            className="p-2.5 text-slate-700 dark:text-white bg-white/55 dark:bg-white/5 border border-white/70 dark:border-white/10 rounded-full backdrop-blur-md shadow-soft transition-all duration-200 active:scale-95 disabled:opacity-50"
-            title="Use my location"
-          >
-            {isGeolocationLoading ? (
-              <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
-            ) : (
-              <MapPin size={16} />
-            )}
+        <div className="ml-auto flex items-center gap-2">
+          <button type="button" onClick={fetchCurrentLocation} disabled={isLocating} className="premium-action header-location-desktop" aria-label="Use my current location">
+            {isLocating ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> : <Navigation size={17} />}
+            <span>{isLocating ? 'Locating' : 'My location'}</span>
           </button>
 
-          <button
-            onClick={() => setIsSearchOpen((open) => !open)}
-            className="p-2.5 text-slate-700 dark:text-white bg-white/55 dark:bg-white/5 border border-white/70 dark:border-white/10 rounded-full backdrop-blur-md shadow-soft transition-all duration-200 active:scale-95"
-            title="Toggle search"
-          >
-            {isSearchOpen ? <X size={16} /> : <Search size={16} />}
+          <button type="button" onClick={fetchCurrentLocation} disabled={isLocating} className="premium-icon-button header-mobile-action" aria-label="Use my current location">
+            {isLocating ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> : <Navigation size={18} />}
+          </button>
+          <button type="button" onClick={() => setIsSearchOpen((open) => !open)} className="premium-icon-button header-mobile-action" aria-label={isSearchOpen ? 'Close search' : 'Open search'} aria-expanded={isSearchOpen}>
+            {isSearchOpen ? <X size={19} /> : <Search size={19} />}
           </button>
         </div>
       </nav>
 
-      {/* Mobile Search Overlay */}
       {isSearchOpen && (
-        <div className="md:hidden mt-3 w-full max-w-7xl mx-auto px-1 animate-in fade-in slide-in-from-top-2">
-          <SearchBox onSearch={handleSearch} isMobileOpen={isSearchOpen} />
+        <div className="mx-auto w-full max-w-7xl px-4 pb-4 md:hidden">
+          <SearchBox onSearch={handleSearch} isMobileOpen />
+        </div>
+      )}
+
+      <p className="sr-only" aria-live="polite">{locationMessage}</p>
+      {locationMessage && (
+        <div className="mx-auto w-full max-w-7xl px-4 pb-3 text-right text-xs font-semibold text-amber-800 dark:text-amber-200 sm:px-6 lg:px-8">
+          {locationMessage}
         </div>
       )}
     </header>

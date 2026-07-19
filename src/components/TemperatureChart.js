@@ -7,7 +7,7 @@ const TemperatureChart = ({ forecastData, unit }) => {
 
     // Prepare data for 24 hours (8 data points * 3 hours = 24 hours)
     const chartData = forecastData.list.slice(0, 8).map(item => ({
-        time: new Date(item.dt * 1000).toLocaleTimeString([], { hour: 'numeric', hour12: true }),
+        time: item.localTimeLabel,
         temp: Math.round(item.main.temp),
         feelsLike: Math.round(item.main.feels_like),
         timestamp: item.dt

@@ -1,221 +1,163 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Search, X, MapPin } from 'react-feather';
+import React, { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
+import { MapPin, Search, X } from 'react-feather';
 import VoiceSearch from './VoiceSearch';
 import RecentSearches from './RecentSearches';
 
-// ─── Comprehensive Indian cities organised by region ────────────────────────
-const indianCitiesByRegion = {
-  'North': [
-    'Delhi', 'Chandigarh', 'Amritsar', 'Ludhiana', 'Jalandhar',
-    'Jaipur', 'Jodhpur', 'Udaipur', 'Kota', 'Ajmer', 'Bikaner',
-    'Lucknow', 'Agra', 'Varanasi', 'Kanpur', 'Allahabad', 'Meerut',
-    'Dehradun', 'Haridwar', 'Rishikesh', 'Shimla', 'Mussoorie',
-    'Noida', 'Gurgaon', 'Faridabad', 'Ghaziabad', 'Mathura',
-  ],
-  'South': [
-    'Bangalore', 'Chennai', 'Hyderabad', 'Kochi', 'Thiruvananthapuram',
-    'Coimbatore', 'Madurai', 'Vijayawada', 'Visakhapatnam', 'Mangalore',
-    'Mysore', 'Tiruchirappalli', 'Salem', 'Tirupati', 'Kozhikode',
-    'Tirunelveli', 'Vellore', 'Guntur', 'Warangal', 'Nellore',
-  ],
-  'West': [
-    'Mumbai', 'Pune', 'Ahmedabad', 'Surat', 'Vadodara', 'Rajkot',
-    'Nashik', 'Nagpur', 'Aurangabad', 'Kolhapur', 'Solapur',
-    'Thane', 'Navi Mumbai', 'Panaji', 'Vasco da Gama', 'Bhavnagar',
-    'Jamnagar', 'Gandhinagar', 'Anand', 'Amravati',
-  ],
-  'East': [
-    'Kolkata', 'Bhubaneswar', 'Patna', 'Ranchi', 'Guwahati',
-    'Siliguri', 'Cuttack', 'Jamshedpur', 'Dhanbad', 'Puri',
-    'Imphal', 'Shillong', 'Agartala', 'Aizawl', 'Dibrugarh',
-    'Brahmapur', 'Rourkela', 'Bokaro', 'Durgapur', 'Asansol',
-  ],
-  'Central': [
-    'Bhopal', 'Indore', 'Raipur', 'Jabalpur', 'Gwalior',
-    'Ujjain', 'Bilaspur', 'Sagar', 'Satna', 'Korba',
-  ],
+const GEOCODE_URL = 'https://geocoding-api.open-meteo.com/v1/search';
+const popularLocations = ['Mumbai, India', 'Delhi, India', 'Bengaluru, India', 'London, United Kingdom', 'New York, United States', 'Tokyo, Japan'];
+
+const readRecentSearches = () => {
+  try {
+    const value = JSON.parse(localStorage.getItem('recentSearches') || '[]');
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
 };
 
-const allIndianCities = Object.values(indianCitiesByRegion).flat();
-
-// Region tabs — unified to the brand palette for a clean, cohesive look
-const regionInactive = 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200 dark:bg-white/5 dark:text-slate-300 dark:border-white/10 dark:hover:bg-white/10';
-const regionActive = 'bg-brand-500 text-white border-brand-500 shadow-sm shadow-brand-500/20';
-
-const regionColors = {
-  North: regionInactive, South: regionInactive, West: regionInactive, East: regionInactive, Central: regionInactive,
-};
-
-const regionActiveColors = {
-  North: regionActive, South: regionActive, West: regionActive, East: regionActive, Central: regionActive,
-};
-
-const SearchBox = ({ onSearch, isMobileOpen }) => {
+const SearchBox = ({ onSearch, isMobileOpen = false }) => {
   const [input, setInput] = useState('');
   const [suggestions, setSuggestions] = useState([]);
-  const [recentSearches, setRecentSearches] = useState([]);
+  const [recentSearches, setRecentSearches] = useState(readRecentSearches);
   const [isFocused, setIsFocused] = useState(false);
-  const [activeRegion, setActiveRegion] = useState('North');
-  const inputRef = useRef();
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('recentSearches') || '[]');
-    setRecentSearches(saved);
-  }, []);
-
-  useEffect(() => {
-    if (input.trim()) {
-      const filtered = [...new Set([...recentSearches, ...allIndianCities])]
-        .filter(city => city.toLowerCase().includes(input.toLowerCase()));
-      setSuggestions(filtered.slice(0, 6));
-    } else {
+    const term = input.trim();
+    if (term.length < 2) {
       setSuggestions([]);
+      setIsSearching(false);
+      return undefined;
     }
-  }, [input, recentSearches]);
 
-  const updateRecent = city => {
-    const updated = [city, ...recentSearches.filter(c => c !== city)].slice(0, 5);
+    const controller = new AbortController();
+    const timeout = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const response = await axios.get(GEOCODE_URL, {
+          params: { name: term, count: 6, language: 'en', format: 'json' },
+          signal: controller.signal,
+        });
+        const next = (response.data.results || []).map((result) => ({
+          id: result.id || `${result.latitude}-${result.longitude}`,
+          name: result.name,
+          detail: [result.admin1, result.country].filter(Boolean).join(', '),
+          query: [result.name, result.admin1, result.country].filter(Boolean).join(', '),
+        }));
+        setSuggestions(next);
+      } catch (error) {
+        if (!axios.isCancel(error)) setSuggestions([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 280);
+
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [input]);
+
+  const visibleDefaults = useMemo(
+    () => (recentSearches.length ? recentSearches : popularLocations),
+    [recentSearches]
+  );
+
+  const updateRecent = (term) => {
+    const updated = [term, ...recentSearches.filter((item) => item !== term)].slice(0, 6);
     setRecentSearches(updated);
     localStorage.setItem('recentSearches', JSON.stringify(updated));
   };
 
-  const handleSubmit = e => {
-    e.preventDefault();
-    handleSearch(input);
-  };
-
-  const handleSearch = (city) => {
-    const term = city.trim();
+  const handleSearch = (value) => {
+    const term = value.trim();
     if (!term) return;
     onSearch(term);
     updateRecent(term);
     setInput('');
+    setSuggestions([]);
     setIsFocused(false);
   };
 
-  const showDropdown = isFocused && (
-    suggestions.length > 0 ||
-    (!input && recentSearches.length > 0) ||
-    !input
-  );
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    handleSearch(input);
+  };
+
+  const showDropdown = isFocused;
 
   return (
-    <div className={`relative w-full group ${isMobileOpen ? 'block animate-in fade-in slide-in-from-top-1 duration-300' : 'hidden md:block'}`}>
-      <form onSubmit={handleSubmit} className="relative w-full max-w-lg mx-auto">
-        <div className="relative w-full transition-all duration-300">
-          <Search
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-brand-500 transition-colors"
-            size={16}
-          />
+    <div className={`relative mx-auto w-full max-w-xl ${isMobileOpen ? 'block' : 'hidden md:block'}`} onBlur={(event) => {
+      if (!event.currentTarget.contains(event.relatedTarget)) setIsFocused(false);
+    }}>
+      <form onSubmit={handleSubmit} role="search">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
           <input
-            ref={inputRef}
-            type="text"
+            type="search"
             value={input}
-            onChange={e => setInput(e.target.value)}
+            onChange={(event) => setInput(event.target.value)}
             onFocus={() => setIsFocused(true)}
-            onBlur={() => setTimeout(() => setIsFocused(false), 200)}
-            placeholder="Search city or location..."
-            className="w-full py-3.5 pl-11 pr-14 rounded-full bg-white/65 dark:bg-slate-950/25 border border-white/60 dark:border-white/10 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/40 backdrop-blur-2xl shadow-soft group-focus-within:border-brand-400/50 transition-all duration-200"
+            placeholder="Search city or airport"
+            aria-label="Search city or airport"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-controls="location-suggestions"
+            aria-expanded={showDropdown}
             autoFocus={isMobileOpen}
+            className="premium-search-input"
           />
-
-          <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center space-x-1.5">
+          <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
             {input && (
-              <button
-                type="button"
-                onClick={() => setInput('')}
-                className="p-1 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-950/5 dark:hover:bg-white/5 transition-all"
-              >
-                <X size={14} />
+              <button type="button" onClick={() => setInput('')} className="grid h-9 w-9 place-items-center rounded-full text-slate-400 transition hover:bg-slate-950/5 hover:text-slate-800 dark:hover:bg-white/10 dark:hover:text-white" aria-label="Clear search">
+                <X size={15} />
               </button>
             )}
-            <div className="border-l border-slate-950/10 dark:border-white/10 pl-1.5">
-              <VoiceSearch setLocation={handleSearch} />
-            </div>
+            <VoiceSearch setLocation={handleSearch} />
           </div>
-
-          {/* ── UNIFIED DROPDOWN ── */}
-          {showDropdown && (
-            <div className="absolute z-50 w-full mt-3 bg-white dark:bg-slate-900 rounded-[24px] shadow-[0_24px_60px_-12px_rgba(15,23,42,0.35)] dark:shadow-[0_24px_60px_-12px_rgba(2,6,23,0.7)] border border-slate-200 dark:border-white/10 overflow-hidden p-3 animate-in fade-in slide-in-from-top-2 duration-300">
-
-              {/* Autocomplete suggestions (while typing) */}
-              {input && suggestions.length > 0 && (
-                <ul className="mb-1 space-y-0.5">
-                  {suggestions.map(city => (
-                    <li
-                      key={city}
-                      onClick={() => handleSearch(city)}
-                      className="px-4 py-2.5 cursor-pointer flex items-center space-x-3 hover:bg-brand-500/10 dark:hover:bg-white/5 rounded-2xl transition-all"
-                    >
-                      <MapPin size={14} className="text-slate-400 shrink-0" />
-                      <span className="text-slate-800 dark:text-slate-200 font-semibold text-sm">{city}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {/* No match message */}
-              {input && suggestions.length === 0 && (
-                <p className="px-4 py-3 text-xs font-bold text-slate-400 dark:text-slate-500">
-                  No matching locations — try typing more or search by voice.
-                </p>
-              )}
-
-              {/* Recent searches (when input is empty) */}
-              {!input && recentSearches.length > 0 && (
-                <div className="mb-4 px-1">
-                  <RecentSearches searches={recentSearches} onSearch={handleSearch} />
-                </div>
-              )}
-
-              {/* Regional city browser (when input is empty) */}
-              {!input && (
-                <div className="p-1">
-                  <p className="px-2 pt-1 pb-3.5 text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                    Popular Locations
-                  </p>
-
-                  {/* Region tabs */}
-                  <div className="flex gap-1.5 px-1 pb-3 flex-wrap">
-                    {Object.keys(indianCitiesByRegion).map(region => (
-                      <button
-                        key={region}
-                        type="button"
-                        onClick={() => setActiveRegion(region)}
-                        className={`px-3.5 py-1.5 rounded-full text-[10px] font-extrabold border transition-all duration-300 ${
-                          activeRegion === region
-                            ? regionActiveColors[region]
-                            : regionColors[region]
-                        }`}
-                      >
-                        {region}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* City chips for active region */}
-                  <div className="flex flex-wrap gap-1.5 px-1 pb-1 max-h-36 overflow-y-auto hide-scrollbar">
-                    {indianCitiesByRegion[activeRegion].map(city => (
-                      <button
-                        key={city}
-                        type="button"
-                        onClick={() => handleSearch(city)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-slate-950/5 dark:bg-white/5 hover:bg-brand-500 hover:text-white dark:hover:bg-brand-500 text-slate-700 dark:text-slate-300 transition-all duration-200"
-                      >
-                        <MapPin size={10} className="opacity-55" />
-                        {city}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
         </div>
+
+        {showDropdown && (
+          <div id="location-suggestions" className="premium-search-menu">
+            {input.trim().length >= 2 ? (
+              <div role="listbox" aria-label="Location suggestions">
+                <p className="premium-menu-label">{isSearching ? 'Searching places…' : 'Suggested places'}</p>
+                {!isSearching && suggestions.length === 0 && (
+                  <p className="px-3 py-4 text-sm text-slate-500 dark:text-slate-400">No suggestions yet. Press Enter to search this exact location.</p>
+                )}
+                {suggestions.map((suggestion) => (
+                  <button key={suggestion.id} type="button" role="option" aria-selected="false" onClick={() => handleSearch(suggestion.query)} className="premium-location-option">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-300"><MapPin size={15} /></span>
+                    <span className="min-w-0 text-left">
+                      <span className="block truncate text-sm font-bold text-slate-900 dark:text-white">{suggestion.name}</span>
+                      <span className="block truncate text-xs text-slate-500 dark:text-slate-400">{suggestion.detail}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div>
+                <p className="premium-menu-label">{recentSearches.length ? 'Recent searches' : 'Popular places'}</p>
+                {recentSearches.length ? (
+                  <RecentSearches searches={recentSearches} onSearch={handleSearch} />
+                ) : (
+                  <div className="grid gap-1 sm:grid-cols-2">
+                    {visibleDefaults.map((place) => (
+                      <button key={place} type="button" onClick={() => handleSearch(place)} className="premium-location-option py-2.5">
+                        <MapPin size={14} className="shrink-0 text-sky-500" />
+                        <span className="truncate text-sm font-semibold">{place}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </form>
     </div>
   );
 };
 
 export default SearchBox;
-
