@@ -64,8 +64,8 @@
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
     -webkit-tap-highlight-color: transparent;
-    /* Behind the sky layer, and what shows when iOS over-scrolls */
-    background: #0e1a33;
+    /* Behind the sky layer: follows the sky (set by Home), so no dark strip can show */
+    background: var(--sky-bottom-color, #3f86d6);
     color-scheme: dark;
     /* No native pull-to-reload/bounce: the app has its own pull-to-refresh */
     overscroll-behavior-y: none;
@@ -94,13 +94,19 @@
   }
 }
 
-/* Frosted card on top of the sky (text contrast checked on every sky) */
+/*
+  Tinted card on top of the sky (text contrast was checked on the tint alone).
+  The frosted blur is desktop-only: a dozen live backdrop blurs over an animated
+  sky made scrolling heavy on phones, and over a smooth gradient it adds little.
+*/
 @utility glass {
   background: rgb(8 20 45 / 0.32);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  backdrop-filter: blur(20px) saturate(140%);
   border: 1px solid rgb(255 255 255 / 0.12);
   border-radius: var(--radius-card);
+  @media (hover: hover) and (pointer: fine) {
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    backdrop-filter: blur(20px) saturate(140%);
+  }
 }
 
 /* Aligned digits for columns of numbers (not for the big hero number) */

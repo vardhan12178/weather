@@ -17,7 +17,16 @@
 
 .sky {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  /*
+    Size to the LARGEST viewport (browser toolbars hidden), not the current one.
+    Mobile browsers hide their toolbars while scrolling; with inset: 0 the newly
+    revealed strip showed the page background until the browser caught up.
+  */
+  height: 100vh;
+  height: 100lvh;
   z-index: -1;
   overflow: hidden;
   pointer-events: none;

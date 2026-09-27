@@ -11,6 +11,11 @@ interface SheetProps {
   header?: ReactNode;
   /** Element to focus when the sheet opens (default: the browser picks the first control) */
   initialFocusRef?: RefObject<HTMLElement | null>;
+  /**
+   * Fixed tall height instead of fitting the content. Use for sheets whose
+   * content changes as you type (search), so the top never jumps around.
+   */
+  tall?: boolean;
 }
 
 const DISMISS_DISTANCE = 110;
@@ -20,7 +25,7 @@ const DISMISS_DISTANCE = 110;
  * so focus trapping, Esc-to-close and the modal backdrop come from the browser.
  * Drag the handle down to dismiss on touch screens.
  */
-const Sheet = ({ open, onClose, title, children, header, initialFocusRef }: SheetProps) => {
+const Sheet = ({ open, onClose, title, children, header, initialFocusRef, tall = false }: SheetProps) => {
   const ref = useRef<HTMLDialogElement>(null);
   const drag = useRef<{ startY: number; dy: number } | null>(null);
   const titleId = useId();
@@ -66,9 +71,11 @@ const Sheet = ({ open, onClose, title, children, header, initialFocusRef }: Shee
       onClose={onClose}
       // A click on the dialog element itself (not its content) is a backdrop click
       onClick={(e) => e.target === ref.current && onClose()}
-      className="fixed inset-0 mx-0 mb-0 mt-auto flex max-h-[88dvh] w-full max-w-none flex-col overflow-hidden rounded-t-[28px] bg-surface p-0 text-white shadow-2xl backdrop:bg-black/55 backdrop:backdrop-blur-[2px] not-open:hidden open:animate-sheet-up md:m-auto md:max-h-[80dvh] md:w-[min(34rem,calc(100%-2rem))] md:rounded-[28px] md:open:animate-fade-in"
+      className={`fixed inset-0 mx-0 mb-0 mt-auto flex max-h-[88dvh] w-full max-w-none flex-col overflow-hidden rounded-t-[28px] bg-surface p-0 text-white shadow-2xl backdrop:bg-black/60 md:backdrop:backdrop-blur-[2px] not-open:hidden open:animate-sheet-up md:m-auto md:max-h-[80dvh] md:w-[min(34rem,calc(100%-2rem))] md:rounded-[28px] md:open:animate-fade-in ${
+        tall ? 'h-[88dvh] md:h-[min(80dvh,42rem)]' : ''
+      }`}
     >
-      <div className="flex min-h-0 flex-col pb-[env(safe-area-inset-bottom)]">
+      <div className="flex min-h-0 flex-1 flex-col pb-[env(safe-area-inset-bottom)]">
         {/* Drag handle (phones) */}
         <div
           className="flex h-6 shrink-0 touch-none items-center justify-center md:hidden"

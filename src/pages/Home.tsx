@@ -92,6 +92,7 @@ const Home = () => {
   useEffect(() => {
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', SKIES[sky].top);
     document.documentElement.style.setProperty('--sky-top-color', SKIES[sky].top);
+    document.documentElement.style.setProperty('--sky-bottom-color', SKIES[sky].bottom);
   }, [sky]);
 
   const handleSearch = useCallback(

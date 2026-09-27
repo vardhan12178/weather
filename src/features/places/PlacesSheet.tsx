@@ -62,7 +62,7 @@ const PlacesSheet = ({
 }: PlacesSheetProps) => {
   const [input, setInput] = useState('');
   const [activeIndex, setActiveIndex] = useState(-1);
-  const { suggestions, pending, active } = usePlaceSuggestions(input);
+  const { suggestions, pending, stale, active } = usePlaceSuggestions(input);
   const listId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -137,9 +137,16 @@ const PlacesSheet = ({
 
   return (
     // Focus the field only when opened from the search button, so the keyboard doesn't pop up otherwise
-    <Sheet open={open} onClose={close} title="Places" header={searchField} initialFocusRef={focusSearch ? inputRef : undefined}>
+    <Sheet open={open} onClose={close} title="Places" header={searchField} initialFocusRef={focusSearch ? inputRef : undefined} tall>
       {active ? (
-        <ul id={listId} role="listbox" aria-label="Suggestions" className="-mx-2">
+        <ul
+          id={listId}
+          role="listbox"
+          aria-label="Suggestions"
+          aria-busy={pending}
+          // Older results stay visible (dimmed) while new ones load — no flashing
+          className={`-mx-2 transition-opacity duration-150 ${stale && suggestions.length > 0 ? 'opacity-60' : ''}`}
+        >
           {suggestions.map((place, i) => (
             <li key={`${place.lat},${place.lon}`} id={`${listId}-${i}`} role="option" aria-selected={i === activeIndex}>
               <button type="button" onClick={() => choose(place)} className={`${rowClass} ${i === activeIndex ? 'bg-white/10' : ''}`}>
