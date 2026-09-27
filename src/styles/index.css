@@ -1,0 +1,148 @@
+@import 'tailwindcss';
+
+/* ── Design tokens ───────────────────────────────────────────────────────── */
+@theme {
+  /* Self-hosted variable font (see main.tsx) — works offline, no third-party request */
+  --font-sans: 'Plus Jakarta Sans Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Type scale: nothing below 12px */
+  --text-caption: 12px;
+  --text-caption--line-height: 16px;
+  --text-footnote: 13px;
+  --text-footnote--line-height: 18px;
+  --text-body: 15px;
+  --text-body--line-height: 21px;
+  --text-headline: 17px;
+  --text-headline--line-height: 22px;
+  --text-title: 22px;
+  --text-title--line-height: 28px;
+  --text-large: 34px;
+  --text-large--line-height: 40px;
+  --text-hero: 96px;
+  --text-hero--line-height: 1;
+
+  --color-brand-400: #608cf9;
+  --color-brand-500: #2f6bed;
+  --color-brand-600: #1b54d6;
+
+  /* Sheets and charts sit on this solid surface */
+  --color-surface: #111a2c;
+  --color-surface-raised: #1b2740;
+  --color-hairline: #26344f;
+
+  /* Chart series (validated for CVD separation and 3:1 on the surface) */
+  --color-series-1: #3987e5;
+  --color-series-2: #d95926;
+
+  --radius-card: 24px;
+
+  --animate-fade-up: fade-up 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-sheet-up: sheet-up 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-fade-in: fade-in 0.25s ease-out both;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
+  @keyframes sheet-up {
+    from {
+      transform: translateY(100%);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    -webkit-tap-highlight-color: transparent;
+    /* Behind the sky layer, and what shows when iOS over-scrolls */
+    background: #0e1a33;
+    color-scheme: dark;
+    /* No native pull-to-reload/bounce: the app has its own pull-to-refresh */
+    overscroll-behavior-y: none;
+  }
+
+  body {
+    color: white;
+    letter-spacing: -0.01em;
+    min-height: 100dvh;
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 2px solid white;
+    outline-offset: 2px;
+  }
+
+  /* Stop the page scrolling behind an open sheet */
+  html:has(dialog[open]) {
+    overflow: hidden;
+  }
+}
+
+/* Frosted card on top of the sky (text contrast checked on every sky) */
+@utility glass {
+  background: rgb(8 20 45 / 0.32);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: var(--radius-card);
+}
+
+/* Aligned digits for columns of numbers (not for the big hero number) */
+@utility tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+@utility hide-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Staggered entrance for dashboard sections */
+@utility stagger {
+  & > * {
+    animation: var(--animate-fade-up);
+  }
+  & > *:nth-child(2) {
+    animation-delay: 60ms;
+  }
+  & > *:nth-child(3) {
+    animation-delay: 120ms;
+  }
+  & > *:nth-child(4) {
+    animation-delay: 180ms;
+  }
+  & > *:nth-child(n + 5) {
+    animation-delay: 240ms;
+  }
+}
+
+/* ── Motion: respect the OS "reduce motion" setting everywhere ────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
