@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { MAX_FAVORITES } from '../hooks/useWeatherData';
+import { formatLongDate } from '../utils/time';
 import { motion } from 'framer-motion';
 import { RefreshCw, Star, List, BarChart2 } from 'react-feather';
 import WeatherIcon from './WeatherIcon';
@@ -31,11 +33,11 @@ const getAQITheme = (index) => {
     case 3: // Moderate
       return 'from-amber-500/10 via-amber-500/5 to-transparent border-amber-500/20 text-amber-800 dark:text-amber-300';
     case 4: // Poor
-      return 'from-orange-500/10 via-orange-500/5 to-transparent border-orange-500/20 text-orange-850 dark:text-orange-300';
+      return 'from-orange-500/10 via-orange-500/5 to-transparent border-orange-500/20 text-orange-800 dark:text-orange-300';
     case 5: // Hazardous
       return 'from-red-500/10 via-red-500/5 to-transparent border-red-500/20 text-red-800 dark:text-red-300';
     default:
-      return 'from-slate-500/10 via-slate-500/5 to-transparent border-slate-500/20 text-slate-800 dark:text-slate-355';
+      return 'from-slate-500/10 via-slate-500/5 to-transparent border-slate-500/20 text-slate-800 dark:text-slate-300';
   }
 };
 
@@ -53,7 +55,8 @@ const WeatherCard = ({
   weatherData,
   forecastData,
   aqi,
-  setCoordinates,
+  onRefresh,
+  refreshing = false,
   unit,
   toggleUnit,
   isFavorite,
@@ -62,21 +65,17 @@ const WeatherCard = ({
   favorites,
   textColor = 'text-white',
   textSubColor = 'text-white/50',
-  isDay,
 }) => {
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState('list');
 
   if (!weatherData) return null;
 
-  const { name, weather, main, dt, coord, sys, timezone } = weatherData;
+  const { name, weather, main, dt, coord, sys, timezone, timezoneName } = weatherData;
   const { temp, feels_like, temp_max, temp_min } = main;
   const summary = weather[0];
 
   const handleRefresh = () => {
-    setIsRefreshing(true);
-    if (setCoordinates && coord) setCoordinates(coord);
-    setTimeout(() => setIsRefreshing(false), 800);
+    if (!refreshing) onRefresh?.();
   };
 
   const handleFavoriteClick = () => {
@@ -98,14 +97,14 @@ const WeatherCard = ({
       className="relative w-full flex flex-col h-full justify-between"
     >
       {/* 1. Header Information Row */}
-      <div className="flex items-center justify-between gap-4 w-full">
-        <div>
+      <div className="flex items-center justify-between gap-3 w-full">
+        <div className="min-w-0">
           <p className="text-[10px] font-extrabold uppercase tracking-[0.25em] text-slate-500 dark:text-sky-300/80">
-            {new Date(dt * 1000).toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}
+            {formatLongDate(dt, timezoneName)}
           </p>
-          <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900 dark:text-white mt-0.5">
+          <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900 dark:text-white mt-0.5 break-words">
             {name}
-            {sys?.country && <span className="text-lg font-bold text-slate-400 dark:text-slate-500 ml-1.5">{sys.country}</span>}
+            {sys?.country && <span className="inline-block whitespace-nowrap text-lg font-bold text-slate-400 dark:text-slate-500 ml-1.5">{sys.country}</span>}
           </h2>
           <div className="flex flex-wrap items-center gap-2 mt-1.5 text-[10px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">
             <span>Local Time {formatLocalTime(timezone)}</span>
@@ -122,25 +121,30 @@ const WeatherCard = ({
         <div className="flex items-center gap-1.5 shrink-0">
           <button
             onClick={toggleUnit}
-            className="w-9 h-9 rounded-full bg-slate-955/5 hover:bg-slate-955/10 dark:bg-white/10 dark:hover:bg-white/20 text-slate-800 dark:text-white flex items-center justify-center text-xs font-black transition-all border border-slate-955/5 dark:border-white/10 active:scale-95 shadow-sm"
+            aria-label={unit === 'metric' ? 'Switch to Fahrenheit' : 'Switch to Celsius'}
+            className="w-9 h-9 rounded-full bg-slate-950/5 hover:bg-slate-950/10 dark:bg-white/10 dark:hover:bg-white/20 text-slate-800 dark:text-white flex items-center justify-center text-xs font-black transition-all border border-slate-950/5 dark:border-white/10 active:scale-95 shadow-sm"
             title={unit === 'metric' ? 'Switch to Fahrenheit' : 'Switch to Celsius'}
           >
             °{unit === 'metric' ? 'F' : 'C'}
           </button>
           <button
             onClick={handleRefresh}
-            className="w-9 h-9 rounded-full bg-slate-955/5 hover:bg-slate-955/10 dark:bg-white/10 dark:hover:bg-white/20 text-slate-800 dark:text-white flex items-center justify-center transition-all border border-slate-955/5 dark:border-white/10 active:scale-95 shadow-sm"
+            disabled={refreshing}
+            aria-label="Refresh weather"
+            className="w-9 h-9 rounded-full bg-slate-950/5 hover:bg-slate-950/10 dark:bg-white/10 dark:hover:bg-white/20 text-slate-800 dark:text-white flex items-center justify-center transition-all border border-slate-950/5 dark:border-white/10 active:scale-95 shadow-sm"
             title="Refresh weather"
           >
-            <RefreshCw size={13} className={isRefreshing ? 'animate-spin' : ''} />
+            <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
           </button>
           <button
             onClick={handleFavoriteClick}
-            disabled={!isFavorite && favorites?.length >= 5}
+            disabled={!isFavorite && favorites?.length >= MAX_FAVORITES}
+            aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+            aria-pressed={isFavorite}
             className={`w-9 h-9 rounded-full flex items-center justify-center transition-all border active:scale-95 shadow-sm ${
               isFavorite
                 ? 'bg-amber-400 border-amber-400 text-slate-950 shadow-md shadow-amber-400/20 hover:bg-amber-300 hover:border-amber-300'
-                : 'bg-slate-955/5 hover:bg-slate-955/10 dark:bg-white/10 dark:hover:bg-white/20 text-slate-800 dark:text-white border-slate-955/5 dark:border-white/10'
+                : 'bg-slate-950/5 hover:bg-slate-950/10 dark:bg-white/10 dark:hover:bg-white/20 text-slate-800 dark:text-white border-slate-950/5 dark:border-white/10'
             }`}
             title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
           >
@@ -176,12 +180,12 @@ const WeatherCard = ({
 
         {/* Quick High/Low apparent sub-grid */}
         <div className="grid grid-cols-2 gap-3 w-full sm:w-auto min-w-[240px]">
-          <div className="rounded-2xl bg-slate-955/5 dark:bg-white/5 border border-slate-955/5 dark:border-white/5 p-4 flex flex-col justify-between shadow-sm">
+          <div className="rounded-2xl bg-slate-950/5 dark:bg-white/5 border border-slate-950/5 dark:border-white/5 p-4 flex flex-col justify-between shadow-sm">
             <span className="text-[9px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500">Feels Like</span>
             <span className="text-xl font-black text-slate-900 dark:text-white mt-1.5">{Math.round(feels_like)}°</span>
           </div>
 
-          <div className="rounded-2xl bg-slate-955/5 dark:bg-white/5 border border-slate-955/5 dark:border-white/5 p-4 flex flex-col justify-between shadow-sm">
+          <div className="rounded-2xl bg-slate-950/5 dark:bg-white/5 border border-slate-950/5 dark:border-white/5 p-4 flex flex-col justify-between shadow-sm">
             <span className="text-[9px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500">High / Low</span>
             <span className="text-lg font-black text-slate-900 dark:text-white mt-1.5">
               {Math.round(temp_max)}° <span className="text-slate-400 dark:text-slate-500 font-medium">/</span> {Math.round(temp_min)}°
@@ -192,8 +196,8 @@ const WeatherCard = ({
 
       {/* 3. Integrated Alerts & Recommendations Panel */}
       <div className="flex flex-col gap-3 w-full mb-6">
-        <WeatherAlerts weatherData={weatherData} unit={unit} />
-        <WeatherRecommendations weatherData={weatherData} />
+        <WeatherAlerts key={`alert-${name}-${dt}`} weatherData={weatherData} unit={unit} />
+        <WeatherRecommendations key={`rec-${name}-${dt}`} weatherData={weatherData} unit={unit} />
       </div>
 
       {/* 4. Air Quality Summary Bar - upgraded from dull gray to soft dynamic gradient card */}
@@ -214,7 +218,7 @@ const WeatherCard = ({
               { key: 'o3',    label: 'O₃' },
             ].map(({ key, label }) =>
               aqi.components[key] != null ? (
-                <div key={key} className="flex items-center gap-1 bg-white/40 dark:bg-white/10 rounded-full px-2.5 py-0.5 border border-slate-955/10 dark:border-white/10">
+                <div key={key} className="flex items-center gap-1 bg-white/40 dark:bg-white/10 rounded-full px-2.5 py-0.5 border border-slate-950/10 dark:border-white/10">
                   <span className="text-[9px] opacity-60 font-bold">{label}</span>
                   <span className="text-xs font-extrabold">{aqi.components[key].toFixed(0)}</span>
                 </div>
@@ -225,7 +229,7 @@ const WeatherCard = ({
       )}
 
       {/* Divider rule */}
-      <div className="h-[1px] bg-slate-955/5 dark:bg-white/5 my-2" />
+      <div className="h-[1px] bg-slate-950/5 dark:bg-white/5 my-2" />
 
       {/* 5. Next 24 Hours Timeline Section */}
       {forecastData && (
@@ -234,7 +238,7 @@ const WeatherCard = ({
             <h3 className={`${textColor} font-extrabold text-[10px] uppercase tracking-widest opacity-60`}>
               Next 24 Hours
             </h3>
-            <div className="flex gap-1 bg-black/5 dark:bg-white/10 rounded-full p-1 border border-slate-955/5 dark:border-white/5 shadow-sm">
+            <div className="flex gap-1 bg-black/5 dark:bg-white/10 rounded-full p-1 border border-slate-950/5 dark:border-white/5 shadow-sm">
               <button
                 onClick={() => setViewMode('list')}
                 className={`p-2 rounded-full transition-all duration-300 ${
@@ -243,6 +247,8 @@ const WeatherCard = ({
                     : 'text-gray-500 dark:text-gray-400 hover:text-sky-600 dark:hover:text-sky-300'
                 }`}
                 title="List view"
+                aria-label="List view"
+                aria-pressed={viewMode === 'list'}
               >
                 <List size={14} />
               </button>
@@ -254,6 +260,8 @@ const WeatherCard = ({
                     : 'text-gray-500 dark:text-gray-400 hover:text-sky-600 dark:hover:text-sky-300'
                 }`}
                 title="Chart view"
+                aria-label="Chart view"
+                aria-pressed={viewMode === 'chart'}
               >
                 <BarChart2 size={14} />
               </button>
@@ -261,7 +269,7 @@ const WeatherCard = ({
           </div>
 
           {viewMode === 'list' ? (
-            <HourlyTemperature forecastData={forecastData} isDay={isDay} textColor={textColor} textSubColor={textSubColor} />
+            <HourlyTemperature forecastData={forecastData} textColor={textColor} textSubColor={textSubColor} />
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <TemperatureChart forecastData={forecastData} unit={unit} />
@@ -272,7 +280,7 @@ const WeatherCard = ({
       )}
 
       {/* Divider rule */}
-      <div className="h-[1px] bg-slate-955/5 dark:bg-white/5 my-6" />
+      <div className="h-[1px] bg-slate-950/5 dark:bg-white/5 my-6" />
 
       {/* 6. 5-Day Outlook - Integrated directly inside the Weather Sheet */}
       {forecastData && (
@@ -280,6 +288,7 @@ const WeatherCard = ({
           <WeatherForecast
             forecastData={forecastData}
             currentTemp={temp}
+            unit={unit}
             textColor={textColor}
             textSubColor={textSubColor}
           />

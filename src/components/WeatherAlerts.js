@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertTriangle, Thermometer, Wind, CloudRain, Eye, Sun, X } from 'react-feather';
+import { toCelsius, toMetersPerSecond, tempUnitLabel, windUnitLabel } from '../utils/units';
 
 const WeatherAlerts = ({ weatherData, unit = 'metric' }) => {
   const [isVisible, setIsVisible] = useState(true);
@@ -8,8 +9,9 @@ const WeatherAlerts = ({ weatherData, unit = 'metric' }) => {
 
   const { main, wind, weather, visibility, uvIndex } = weatherData;
   const condition = weather[0].main;
-  const tempC = unit === 'metric' ? main.temp : (main.temp - 32) * 5 / 9;
-  const unitLabel = unit === 'metric' ? 'C' : 'F';
+  const tempC = toCelsius(main.temp, unit);
+  const windMs = toMetersPerSecond(wind.speed, unit);
+  const unitLabel = tempUnitLabel(unit);
   const displayTemp = Math.round(main.temp);
 
   // Indian season detection (month 1-12)
@@ -103,10 +105,10 @@ const WeatherAlerts = ({ weatherData, unit = 'metric' }) => {
     }
 
     // ── High winds ───────────────────────────────────────────────────────────
-    if (wind.speed > 15) {
+    if (windMs > 15) {
       return {
         title: 'High Wind Advisory',
-        message: `Wind speeds near ${Math.round(wind.speed)} m/s. Secure lightweight objects and avoid exposed areas.`,
+        message: `Wind speeds near ${Math.round(wind.speed)} ${windUnitLabel(unit)}. Secure lightweight objects and avoid exposed areas.`,
         icon: <Wind size={16} />,
         classes: 'bg-orange-100/85 dark:bg-orange-900/35 text-orange-900 dark:text-orange-100 border-orange-400/70',
       };

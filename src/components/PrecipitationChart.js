@@ -1,14 +1,15 @@
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { motion } from 'framer-motion';
+import { formatHour } from '../utils/time';
 import { Droplet } from 'react-feather';
 
 const PrecipitationChart = ({ forecastData }) => {
     if (!forecastData || !forecastData.list) return null;
 
     // Prepare data for precipitation probability
-    const chartData = forecastData.list.slice(0, 8).map(item => ({
-        time: new Date(item.dt * 1000).toLocaleTimeString([], { hour: 'numeric', hour12: true }),
+    const chartData = forecastData.list.slice(0, 24).map(item => ({
+        time: formatHour(item.dt, forecastData.timezoneName),
         rain: Math.round((item.pop || 0) * 100), // Probability of precipitation as percentage
         timestamp: item.dt
     }));
@@ -56,6 +57,7 @@ const PrecipitationChart = ({ forecastData }) => {
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.15)" className="dark:opacity-30" />
                     <XAxis
                         dataKey="time"
+                        interval={3}
                         stroke="#64748b"
                         style={{ fontSize: '10px', fontWeight: 'bold' }}
                         tick={{ fill: '#64748b' }}

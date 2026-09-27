@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 
 // ─── Open-Meteo endpoint base URLs (no API key needed) ───────────────────────
@@ -8,8 +8,9 @@ const GEOCODE_URL    = 'https://geocoding-api.open-meteo.com/v1/search';
 const REVERSE_URL    = 'https://nominatim.openstreetmap.org/reverse';
 
 // ─── WMO weather-code → condition / description / OWM-compatible icon ────────
-// Open-Meteo uses WMO codes; we map them to OWM icon strings so every existing
+// Open-Meteo uses WMO codes; we map them to OWM-style objects so every existing
 // component (icons, background gradients, alerts, recommendations) keeps working.
+// Components read the condition as `weather[0].main` (OWM's field name).
 const wmoMap = (code, isDay) => {
   const s = isDay ? 'd' : 'n';
   const table = {
@@ -42,7 +43,8 @@ const wmoMap = (code, isDay) => {
     96: { condition: 'Thunderstorm', description: 'thunderstorm with hail',       icon: `11${s}` },
     99: { condition: 'Thunderstorm', description: 'thunderstorm with heavy hail', icon: `11${s}` },
   };
-  return table[code] ?? { condition: 'Clear', description: 'unknown', icon: `01${s}` };
+  const entry = table[code] ?? { condition: 'Clear', description: 'unknown', icon: `01${s}` };
+  return { ...entry, main: entry.condition };
 };
 
 // ─── European AQI (0–500) → OWM 1-5 index ────────────────────────────────────
@@ -55,7 +57,20 @@ const euAqiToIndex = (euAqi) => {
   return 5;
 };
 
+// Index of the hourly slot containing `unixSeconds` (the last slot that has
+// already started). `current.time` is on a 15-minute grid, so an exact match
+// against the hourly grid usually fails.
+const hourIndexAt = (hourlyTimes, unixSeconds) => {
+  let idx = 0;
+  for (let i = 0; i < hourlyTimes.length; i++) {
+    if (hourlyTimes[i] <= unixSeconds) idx = i;
+    else break;
+  }
+  return idx;
+};
+
 // ─── Normalise Open-Meteo current + daily into OWM-compatible weatherData ────
+// Requests use `timeformat=unixtime`, so every time value is a real UTC instant.
 const normaliseWeather = (omData, aqData, cityInfo) => {
   const c   = omData.current;
   const h   = omData.hourly;
@@ -63,17 +78,10 @@ const normaliseWeather = (omData, aqData, cityInfo) => {
   const isDay = c.is_day === 1;
   const wx  = wmoMap(c.weather_code, isDay);
 
-  // Find the hourly index matching the current timestamp
-  const currentTime = c.time; // e.g. "2025-05-21T14:00"
-  const hIdx = Math.max(0, h.time.findIndex(t => t === currentTime));
+  const hIdx = hourIndexAt(h.time, c.time);
 
-  // Safely read hourly values at current index (fallback gracefully)
   const visibility = Math.min(h.visibility?.[hIdx] ?? 10000, 10000);
   const uvIndex    = h.uv_index?.[hIdx] ?? d.uv_index_max?.[0] ?? 0;
-
-  // Sunrise / sunset as Unix timestamps (daily[0] = today)
-  const sunriseTs = Math.floor(new Date(d.sunrise[0]).getTime() / 1000);
-  const sunsetTs  = Math.floor(new Date(d.sunset[0]).getTime()  / 1000);
 
   // AQI in OWM-compatible shape
   const aqCurrent  = aqData?.current;
@@ -97,14 +105,15 @@ const normaliseWeather = (omData, aqData, cityInfo) => {
     coord: { lat: omData.latitude, lon: omData.longitude },
 
     // Time
-    dt: Math.floor(new Date(c.time).getTime() / 1000),
+    dt: c.time,
     timezone: omData.utc_offset_seconds,
+    timezoneName: omData.timezone,
 
-    // System / astronomy
+    // System / astronomy (daily[0] = today)
     sys: {
       country: cityInfo.country_code ?? '',
-      sunrise: sunriseTs,
-      sunset:  sunsetTs,
+      sunrise: d.sunrise[0],
+      sunset:  d.sunset[0],
     },
 
     // Condition
@@ -140,42 +149,27 @@ const normaliseWeather = (omData, aqData, cityInfo) => {
   return { weatherData, normalisedAqi };
 };
 
-// ─── Normalise Open-Meteo hourly into OWM-compatible forecastData.list ───────
-// Takes one 3-hourly entry every 3 indices so the shape matches OWM's structure.
-// Crucially every day will have a "12:00:00" entry which WeatherForecast relies on.
+// ─── Normalise Open-Meteo hourly + daily into forecastData ───────────────────
+// `list`  — true 1-hour steps starting at the current hour (next 48 h)
+// `daily` — one entry per day straight from the daily API (not rebuilt from samples)
+const HOURS_AHEAD = 48;
+
 const normaliseForecast = (omData) => {
-  const h   = omData.hourly;
+  const h = omData.hourly;
+  const d = omData.daily;
+  const start = hourIndexAt(h.time, omData.current.time);
+
   const list = [];
-  const nowMs = Date.now();
-
-  for (let i = 0; i < h.time.length; i++) {
-    // Only keep 3-hourly entries
-    if (i % 3 !== 0) continue;
-
-    const timeStr = h.time[i];                         // "2025-05-21T12:00"
-    const dtMs    = new Date(timeStr).getTime();
-
-    // Skip timestamps already more than 1 hour in the past
-    if (dtMs < nowMs - 3_600_000) continue;
-
-    const dt     = Math.floor(dtMs / 1000);
-    const hour   = parseInt(timeStr.split('T')[1], 10); // local hour (0-23)
-    const isDay  = hour >= 6 && hour < 20;
-    const wx     = wmoMap(h.weather_code[i], isDay);
-    const dtTxt  = timeStr.replace('T', ' ') + ':00';  // "2025-05-21 12:00:00"
-
+  for (let i = start; i < h.time.length && list.length < HOURS_AHEAD; i++) {
     list.push({
-      dt,
-      dt_txt: dtTxt,
+      dt: h.time[i],
       main: {
         temp:       h.temperature_2m[i],
         feels_like: h.apparent_temperature[i],
-        temp_max:   h.temperature_2m[i],
-        temp_min:   h.temperature_2m[i],
         humidity:   h.relative_humidity_2m[i],
         pressure:   h.pressure_msl ? Math.round(h.pressure_msl[i]) : 1013,
       },
-      weather: [wx],
+      weather: [wmoMap(h.weather_code[i], h.is_day?.[i] === 1)],
       wind: {
         speed: h.wind_speed_10m[i],
         deg:   h.wind_direction_10m[i],
@@ -183,11 +177,17 @@ const normaliseForecast = (omData) => {
       pop:        (h.precipitation_probability[i] ?? 0) / 100,
       visibility: Math.min(h.visibility?.[i] ?? 10000, 10000),
     });
-
-    if (list.length >= 56) break; // 7 days × 8 entries/day
   }
 
-  return { list };
+  const daily = d.time.map((dayStart, i) => ({
+    dt: dayStart,
+    weather: [wmoMap(d.weather_code[i], true)],
+    temp_max: d.temperature_2m_max[i],
+    temp_min: d.temperature_2m_min[i],
+    pop: (d.precipitation_probability_max?.[i] ?? 0) / 100,
+  }));
+
+  return { list, daily, timezoneName: omData.timezone };
 };
 
 // ─── Reverse geocode coordinates → city name (Nominatim, free, no key) ───────
@@ -195,7 +195,7 @@ const reverseGeocode = async (lat, lon) => {
   try {
     const res = await axios.get(REVERSE_URL, {
       params: { lat, lon, format: 'json' },
-      headers: { 'Accept-Language': 'en', 'User-Agent': 'WeatherlyApp/1.0' },
+      headers: { 'Accept-Language': 'en' },
     });
     const a = res.data.address ?? {};
     const name = a.city ?? a.town ?? a.village ?? a.hamlet ?? a.county ?? a.state ?? 'Your Location';
@@ -210,6 +210,67 @@ const reverseGeocode = async (lat, lon) => {
   }
 };
 
+const weatherParams = (lat, lon, unit) => ({
+  latitude:  lat,
+  longitude: lon,
+  current: [
+    'temperature_2m', 'relative_humidity_2m', 'apparent_temperature',
+    'is_day', 'precipitation', 'weather_code', 'cloud_cover',
+    'pressure_msl', 'wind_speed_10m', 'wind_direction_10m', 'wind_gusts_10m',
+  ].join(','),
+  hourly: [
+    'temperature_2m', 'relative_humidity_2m', 'apparent_temperature',
+    'precipitation_probability', 'weather_code', 'is_day',
+    'wind_speed_10m', 'wind_direction_10m',
+    'uv_index', 'visibility', 'pressure_msl',
+  ].join(','),
+  daily: [
+    'weather_code', 'temperature_2m_max', 'temperature_2m_min',
+    'sunrise', 'sunset', 'uv_index_max', 'precipitation_probability_max',
+  ].join(','),
+  temperature_unit: unit === 'metric' ? 'celsius' : 'fahrenheit',
+  wind_speed_unit:  unit === 'metric' ? 'ms' : 'mph',
+  timezone:         'auto',
+  timeformat:       'unixtime',
+  forecast_days:    7,
+});
+
+const airQualityParams = (lat, lon) => ({
+  latitude:  lat,
+  longitude: lon,
+  current: [
+    'pm10', 'pm2_5', 'carbon_monoxide', 'nitrogen_dioxide',
+    'ozone', 'sulphur_dioxide', 'dust', 'european_aqi',
+  ].join(','),
+  timezone: 'auto',
+});
+
+// ─── Favourites persistence ──────────────────────────────────────────────────
+const FAVORITES_KEY = 'weatherFavorites';
+export const MAX_FAVORITES = 5;
+
+const loadFavorites = () => {
+  try {
+    const saved = localStorage.getItem(FAVORITES_KEY);
+    const parsed = saved ? JSON.parse(saved) : [];
+    return parsed.map(item =>
+      typeof item === 'string' ? { name: item, temp: null, icon: '01d', desc: '' } : item
+    );
+  } catch { return []; }
+};
+
+const saveFavorites = (list) => {
+  try { localStorage.setItem(FAVORITES_KEY, JSON.stringify(list)); } catch { /* storage full/blocked */ }
+};
+
+// Error codes surfaced to the UI (see NotFound.js for the copy)
+export const ERRORS = {
+  NOT_FOUND:       'not-found',
+  NETWORK:         'network',
+  GEO_DENIED:      'geo-denied',
+  GEO_UNAVAILABLE: 'geo-unavailable',
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  Hook
 // ─────────────────────────────────────────────────────────────────────────────
@@ -217,231 +278,179 @@ export const useWeatherData = () => {
   const [weatherData, setWeatherData]   = useState(null);
   const [forecastData, setForecastData] = useState(null);
   const [aqi, setAqi]                   = useState(null);
-  const [location, setLocation]         = useState('');
-  const [coordinates, setCoordinates]   = useState({ lat: null, lon: null });
   const [error, setError]               = useState('');
   const [loading, setLoading]           = useState(false);
+  const [refreshing, setRefreshing]     = useState(false);
   const [unit, setUnit]                 = useState('metric');
-  const [favorites, setFavorites]       = useState(() => {
-    const saved = localStorage.getItem('weatherFavorites');
+  const [favorites, setFavorites]       = useState(loadFavorites);
+
+  const unitRef = useRef(unit);
+  unitRef.current = unit;
+
+  // The place currently on screen — reused by refresh and unit changes
+  const placeRef = useRef(null);
+
+  // Every request bumps this; responses from superseded requests are dropped,
+  // so a slow earlier search can never overwrite a newer one.
+  const requestIdRef = useRef(0);
+
+  const clearData = () => {
+    setWeatherData(null);
+    setForecastData(null);
+    setAqi(null);
+  };
+
+  // ── Core fetch ─────────────────────────────────────────────────────────────
+  // `silent` keeps the current screen visible (refresh / unit toggle) instead
+  // of swapping in the loading skeleton.
+  const loadPlace = useCallback(async (lat, lon, cityInfo, { silent = false } = {}) => {
+    const requestId = ++requestIdRef.current;
+    const isLatest = () => requestId === requestIdRef.current;
+    const currentUnit = unitRef.current;
+
+    setError('');
+    if (silent) setRefreshing(true);
+    else setLoading(true);
+
     try {
-      const parsed = saved ? JSON.parse(saved) : [];
-      return parsed.map(item =>
-        typeof item === 'string' ? { name: item, temp: null, icon: '01d', desc: '' } : item
-      );
-    } catch { return []; }
-  });
+      const [info, weatherRes, aqRes] = await Promise.all([
+        cityInfo ?? reverseGeocode(lat, lon),
+        axios.get(WEATHER_URL, { params: weatherParams(lat, lon, currentUnit) }),
+        // AQI is non-critical — never let it break the main flow
+        axios.get(AIR_QUALITY_URL, { params: airQualityParams(lat, lon) }).catch(() => ({ data: null })),
+      ]);
+      if (!isLatest()) return;
 
-  // Refs — survive re-renders without causing dependency-loop issues
-  const unitRef     = useRef(unit);
-  unitRef.current   = unit;
+      const { weatherData: wd, normalisedAqi } = normaliseWeather(weatherRes.data, aqRes.data, info);
+      setWeatherData(wd);
+      setForecastData(normaliseForecast(weatherRes.data));
+      setAqi(normalisedAqi);
+      placeRef.current = { lat, lon, cityInfo: info };
+    } catch (err) {
+      if (!isLatest()) return;
+      console.error('Weather fetch error:', err);
+      // A failed background refresh keeps the last good data on screen
+      if (!silent) {
+        clearData();
+        setError(ERRORS.NETWORK);
+      }
+    } finally {
+      if (isLatest()) {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    }
+  }, []);
 
-  const cityInfoRef = useRef({ name: '', country_code: '', country: '', admin1: '' });
+  // ── City-name search (Open-Meteo geocoding) ────────────────────────────────
+  // Called directly (not via an effect), so searching the same city twice works.
+  const searchCity = useCallback(async (city) => {
+    const term = city?.trim();
+    if (!term) return;
 
-  // Tracks the last successfully-fetched combo to deduplicate calls
-  const lastFetchRef = useRef({ lat: null, lon: null, unit: null });
+    const requestId = ++requestIdRef.current;
+    setError('');
+    setLoading(true);
+
+    try {
+      const res = await axios.get(GEOCODE_URL, {
+        params: { name: term, count: 1, language: 'en', format: 'json' },
+      });
+      if (requestId !== requestIdRef.current) return;
+
+      const r = res.data.results?.[0];
+      if (!r) {
+        clearData();
+        setError(ERRORS.NOT_FOUND);
+        setLoading(false);
+        return;
+      }
+
+      await loadPlace(r.latitude, r.longitude, {
+        name:         r.name,
+        country_code: r.country_code?.toUpperCase() ?? '',
+        country:      r.country ?? '',
+        admin1:       r.admin1  ?? '',
+      });
+    } catch (err) {
+      if (requestId !== requestIdRef.current) return;
+      console.error('Geocoding error:', err);
+      clearData();
+      setError(ERRORS.NETWORK);
+      setLoading(false);
+    }
+  }, [loadPlace]);
+
+  const loadCoordinates = useCallback(({ lat, lon }) => {
+    if (lat == null || lon == null) return;
+    loadPlace(lat, lon);
+  }, [loadPlace]);
+
+  const refresh = useCallback(() => {
+    const place = placeRef.current;
+    if (!place) return Promise.resolve();
+    return loadPlace(place.lat, place.lon, place.cityInfo, { silent: true });
+  }, [loadPlace]);
+
+  // ── Initial load — browser geolocation ────────────────────────────────────
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setError(ERRORS.GEO_UNAVAILABLE);
+      return;
+    }
+    // If the user searches before the position arrives, their search wins
+    const startedAt = requestIdRef.current;
+    setLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (requestIdRef.current !== startedAt) return;
+        loadPlace(pos.coords.latitude, pos.coords.longitude);
+      },
+      (err) => {
+        if (requestIdRef.current !== startedAt) return;
+        setError(err.code === err.PERMISSION_DENIED ? ERRORS.GEO_DENIED : ERRORS.GEO_UNAVAILABLE);
+        setLoading(false);
+      },
+      { timeout: 10000, maximumAge: 10 * 60 * 1000 }
+    );
+  }, [loadPlace]);
+
+  // ── Re-fetch the current place when the unit changes ─────────────────────
+  useEffect(() => {
+    const place = placeRef.current;
+    if (!place) return;
+    loadPlace(place.lat, place.lon, place.cityInfo, { silent: true });
+  }, [unit, loadPlace]);
 
   // ── Favorites ─────────────────────────────────────────────────────────────
   const toggleUnit = () => setUnit(prev => prev === 'metric' ? 'imperial' : 'metric');
 
   const addToFavorites = (data) => {
-    if (!favorites.some(f => f.name === data.name)) {
-      const newFav = {
-        name:    data.name,
-        temp:    data.main.temp,
-        icon:    data.weather[0].icon,
-        desc:    data.weather[0].main,
-        country: data.sys.country,
-      };
-      const updated = [newFav, ...favorites].slice(0, 5);
-      setFavorites(updated);
-      localStorage.setItem('weatherFavorites', JSON.stringify(updated));
-    }
+    if (favorites.some(f => f.name === data.name)) return;
+    const newFav = {
+      name:    data.name,
+      temp:    data.main.temp,
+      unit,    // so the saved temperature can be converted if the unit changes later
+      icon:    data.weather[0].icon,
+      desc:    data.weather[0].main,
+      country: data.sys.country,
+    };
+    const updated = [newFav, ...favorites].slice(0, MAX_FAVORITES);
+    setFavorites(updated);
+    saveFavorites(updated);
   };
 
   const removeFromFavorites = (cityName) => {
     const updated = favorites.filter(f => f.name !== cityName);
     setFavorites(updated);
-    localStorage.setItem('weatherFavorites', JSON.stringify(updated));
+    saveFavorites(updated);
   };
-
-  // ── Core fetch ─────────────────────────────────────────────────────────────
-  const fetchAllData = async (lat, lon) => {
-    const currentUnit = unitRef.current;
-
-    // Skip if we already have fresh data for this exact combo (prevents double-fetch)
-    if (
-      lastFetchRef.current.lat   === lat  &&
-      lastFetchRef.current.lon   === lon  &&
-      lastFetchRef.current.unit  === currentUnit
-    ) return;
-
-    const tempUnit = currentUnit === 'metric' ? 'celsius'     : 'fahrenheit';
-    const windUnit = currentUnit === 'metric' ? 'ms'          : 'mph';
-
-    try {
-      setError('');
-      setLoading(true);
-      lastFetchRef.current = { lat, lon, unit: currentUnit };
-
-      // Fire weather + air-quality requests in parallel
-      const [weatherRes, aqRes] = await Promise.all([
-        axios.get(WEATHER_URL, {
-          params: {
-            latitude:         lat,
-            longitude:        lon,
-            current: [
-              'temperature_2m', 'relative_humidity_2m', 'apparent_temperature',
-              'is_day', 'precipitation', 'weather_code', 'cloud_cover',
-              'pressure_msl', 'wind_speed_10m', 'wind_direction_10m', 'wind_gusts_10m',
-            ].join(','),
-            hourly: [
-              'temperature_2m', 'relative_humidity_2m', 'apparent_temperature',
-              'precipitation_probability', 'weather_code',
-              'wind_speed_10m', 'wind_direction_10m',
-              'uv_index', 'visibility', 'pressure_msl',
-            ].join(','),
-            daily: [
-              'weather_code', 'temperature_2m_max', 'temperature_2m_min',
-              'sunrise', 'sunset', 'uv_index_max', 'precipitation_probability_max',
-            ].join(','),
-            temperature_unit: tempUnit,
-            wind_speed_unit:  windUnit,
-            timezone:         'auto',
-            forecast_days:    7,
-          },
-        }),
-        // AQI is non-critical — never let it break the main flow
-        axios.get(AIR_QUALITY_URL, {
-          params: {
-            latitude:  lat,
-            longitude: lon,
-            current: [
-              'pm10', 'pm2_5', 'carbon_monoxide', 'nitrogen_dioxide',
-              'ozone', 'sulphur_dioxide', 'dust', 'european_aqi',
-            ].join(','),
-            timezone: 'auto',
-          },
-        }).catch(() => ({ data: null })),
-      ]);
-
-      const cityInfo = cityInfoRef.current;
-      const { weatherData: wd, normalisedAqi } = normaliseWeather(weatherRes.data, aqRes.data, cityInfo);
-      const fd = normaliseForecast(weatherRes.data);
-
-      setWeatherData(wd);
-      setForecastData(fd);
-      setAqi(normalisedAqi);
-
-      // Open-Meteo snaps requested coordinates to its weather grid, so the
-      // returned lat/lon usually differ slightly from what we asked for. Sync
-      // the dedup ref to these snapped coords BEFORE updating coordinate state —
-      // otherwise the coordinates effect treats them as a brand-new location,
-      // reverse-geocodes them, and overwrites the searched city name with a
-      // second fetch (e.g. London → "City of Westminster").
-      lastFetchRef.current = {
-        lat: weatherRes.data.latitude,
-        lon: weatherRes.data.longitude,
-        unit: currentUnit,
-      };
-      setCoordinates({ lat: weatherRes.data.latitude, lon: weatherRes.data.longitude });
-    } catch (err) {
-      console.error('Weather fetch error:', err);
-      setWeatherData(null);
-      setForecastData(null);
-      setError('Unable to fetch weather data.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ── City-name search (Open-Meteo geocoding) ────────────────────────────────
-  const fetchByCity = async (city) => {
-    if (!city.trim()) return;
-    try {
-      setError('');
-      setLoading(true);
-
-      const res = await axios.get(GEOCODE_URL, {
-        params: { name: city.trim(), count: 1, language: 'en', format: 'json' },
-      });
-
-      const results = res.data.results;
-      if (!results?.length) {
-        setWeatherData(null);
-        setError('Location not found.');
-        setLoading(false);
-        return;
-      }
-
-      const r = results[0];
-      cityInfoRef.current = {
-        name:         r.name,
-        country_code: r.country_code?.toUpperCase() ?? '',
-        country:      r.country ?? '',
-        admin1:       r.admin1  ?? '',
-      };
-
-      // Reset dedup ref so the new city is always fetched
-      lastFetchRef.current = { lat: null, lon: null, unit: null };
-      await fetchAllData(r.latitude, r.longitude);
-    } catch {
-      setWeatherData(null);
-      setError('Location not found.');
-      setLoading(false);
-    }
-  };
-
-  // ── Initial load — browser geolocation ────────────────────────────────────
-  useEffect(() => {
-    if (!navigator.geolocation) return;
-    setLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setCoordinates({ lat: latitude, lon: longitude });
-      },
-      () => {
-        setError('Location access denied. Search for a city above.');
-        setLoading(false);
-      }
-    );
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Re-fetch when unit toggles ─────────────────────────────────────────────
-  useEffect(() => {
-    const { lat, lon } = coordinates;
-    if (!lat || !lon) return;
-    lastFetchRef.current = { ...lastFetchRef.current, unit: null };
-    fetchAllData(lat, lon);
-  }, [unit]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Re-fetch when coords change externally (header "use my location") ──────
-  useEffect(() => {
-    const { lat, lon } = coordinates;
-    if (!lat || !lon) return;
-
-    // Avoid double fetch / double geocode if coordinates match last fetched coordinates
-    if (lastFetchRef.current.lat === lat && lastFetchRef.current.lon === lon) {
-      return;
-    }
-
-    const fetchCoordsData = async () => {
-      cityInfoRef.current = await reverseGeocode(lat, lon);
-      fetchAllData(lat, lon);
-    };
-    fetchCoordsData();
-  }, [coordinates.lat, coordinates.lon]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Fetch when city search changes ────────────────────────────────────────
-  useEffect(() => {
-    if (location) fetchByCity(location);
-  }, [location]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     weatherData, forecastData, aqi,
-    location, setLocation,
-    coordinates, setCoordinates,
+    setLocation: searchCity,
+    setCoordinates: loadCoordinates,
+    refresh, refreshing,
     loading, error,
     unit, toggleUnit,
     favorites, addToFavorites, removeFromFavorites,

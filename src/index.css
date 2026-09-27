@@ -1,7 +1,7 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800&display=swap');
 @import "tailwindcss/base";
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800&display=swap');
 
 /* ──────────────────────────────────────────────────────────────────────────
    Design tokens — clean & bright "Material You / Pixel" weather aesthetic
@@ -55,11 +55,6 @@ body {
   letter-spacing: -0.011em;
 }
 
-/* Keep legacy hook working without forcing the old typeface */
-.font-poppins {
-  font-family: var(--font-sans);
-}
-
 /* Tabular figures for any large readout (temps, metrics) */
 .tnum {
   font-variant-numeric: tabular-nums;
@@ -95,52 +90,14 @@ main::-webkit-scrollbar-thumb:hover {
   background: rgba(100, 116, 139, 0.55);
 }
 
-/* ── Reusable surfaces ───────────────────────────────────────────────────── */
-.surface-card {
-  background: var(--surface);
-  border: 1px solid var(--surface-strong);
-  -webkit-backdrop-filter: blur(28px) saturate(140%);
-  backdrop-filter: blur(28px) saturate(140%);
-  box-shadow: var(--shadow-card);
-}
-
-.dark .surface-card {
-  background: var(--surface-dark);
-  border-color: var(--hairline-dark);
-  box-shadow: 0 1px 2px rgba(2, 6, 23, 0.4), 0 24px 60px -20px rgba(2, 6, 23, 0.7);
-}
-
-/* ── Motion — subtle, premium ────────────────────────────────────────────── */
-@keyframes floatY {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-}
-
-.animate-float {
-  animation: floatY 6s ease-in-out infinite;
-}
-
-@keyframes shimmer {
-  100% { transform: translateX(100%); }
-}
-
-.skeleton {
-  position: relative;
-  overflow: hidden;
-}
-
-.skeleton::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
-  animation: shimmer 1.6s infinite;
-}
-
+/* ── Motion: respect the OS "reduce motion" setting everywhere ────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .animate-float,
-  .skeleton::after {
-    animation: none;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

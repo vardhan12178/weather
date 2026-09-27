@@ -1,16 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { Droplet } from 'react-feather';
 import WeatherIcon from './WeatherIcon';
+import { formatHour } from '../utils/time';
 
-const HourlyTemperature = ({ forecastData, isDay, textColor = 'text-white', textSubColor = 'text-white/50' }) => {
-  const [hourlyData, setHourlyData] = useState([]);
-
-  useEffect(() => {
-    if (!forecastData?.list) return;
-    // Show next 8 hourly steps (which covers 24 hours at 3-hour steps)
-    setHourlyData(forecastData.list.slice(0, 8));
-  }, [forecastData]);
+const HourlyTemperature = ({ forecastData, textColor = 'text-white', textSubColor = 'text-white/50' }) => {
+  // Next 24 hours in 1-hour steps; the first slot is the current hour
+  const hourlyData = forecastData?.list?.slice(0, 24) ?? [];
+  const timeZone = forecastData?.timezoneName;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full">
@@ -23,7 +20,7 @@ const HourlyTemperature = ({ forecastData, isDay, textColor = 'text-white', text
           const isNow = index === 0;
           const timeLabel = isNow
             ? 'Now'
-            : new Date(hour.dt * 1000).toLocaleTimeString([], { hour: 'numeric', hour12: true });
+            : formatHour(hour.dt, timeZone);
 
           // Interactive theme highlights for the first card (Now) vs others
           const cardBg = isNow
@@ -35,7 +32,7 @@ const HourlyTemperature = ({ forecastData, isDay, textColor = 'text-white', text
               key={hour.dt}
               initial={{ opacity: 0, scale: 0.92, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: index * 0.04 }}
+              transition={{ duration: 0.4, delay: Math.min(index, 8) * 0.04 }}
               className={`flex-shrink-0 w-[100px] snap-start p-3.5 rounded-[22px] border backdrop-blur-2xl flex flex-col items-center justify-between transition-all duration-300 hover:translate-y-[-4px] hover:shadow-md ${cardBg}`}
             >
               {/* Time Indicator */}

@@ -1,7 +1,11 @@
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Cloud, Stars, Sky } from '@react-three/drei';
+import { Cloud, Clouds, Stars, Sky } from '@react-three/drei';
 import Precipitation from './Precipitation';
+
+// Self-hosted cloud sprite (drei's default downloads it from a CDN at runtime,
+// which fails offline and when the CDN is blocked).
+const CLOUD_TEXTURE = `${process.env.PUBLIC_URL}/textures/cloud.png`;
 
 const ThunderFlash = () => {
   const light = useRef();
@@ -64,11 +68,11 @@ const WeatherScene = ({ condition, isDay }) => {
 
       {/* CLOUDS — soft, atmospheric (kept subtle so UI stays readable) */}
       {isCloudy && (
-        <group position={[0, 3, -5]}>
+        <Clouds texture={CLOUD_TEXTURE} position={[0, 3, -5]}>
           <Cloud opacity={isDay ? 0.7 : 0.5} speed={0.25} width={30} depth={8} segments={30} />
           <Cloud opacity={isDay ? 0.55 : 0.4} speed={0.18} width={20} depth={6} segments={20} position={[15, -1, 2]} />
           <Cloud opacity={isDay ? 0.45 : 0.3} speed={0.13} width={15} depth={4} segments={15} position={[-12, 1, -3]} />
-        </group>
+        </Clouds>
       )}
 
       {/* --- PRECIPITATION MAPPING --- restrained counts for a calmer backdrop */}

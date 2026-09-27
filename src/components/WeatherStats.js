@@ -1,5 +1,7 @@
 import React from 'react';
 import { Wind, Droplet, Eye, Activity, Sunrise, Sunset, Thermometer, Sun } from 'react-feather';
+import { formatClock } from '../utils/time';
+import { toCelsius, fromCelsius } from '../utils/units';
 
 // ─── UV Index details helper ─────────────────────────────────────────────────
 const getUVDetails = (uv) => {
@@ -47,27 +49,24 @@ const MetricWidget = ({ icon: Icon, title, value, unitLabel, description, childr
 );
 
 // ─── Main WeatherStats Component ─────────────────────────────────────────────
-const WeatherStats = ({ weatherData, unit, mainCardClass, textColor, textSubColor }) => {
+const WeatherStats = ({ weatherData, unit, mainCardClass, textColor }) => {
   if (!weatherData) return null;
 
-  const { main, wind, visibility, sys, timezone, uvIndex } = weatherData;
+  const { main, wind, visibility, sys, timezoneName, uvIndex } = weatherData;
   const { humidity, pressure, temp, feels_like } = main;
   const { speed, deg: windDeg, gust } = wind;
   const { sunrise, sunset } = sys;
 
-  // Dew point calculation (Magnus formula)
-  const calculateDewPoint = (t, h) => {
+  // Dew point calculation (Magnus formula — works in °C, shown in the user's unit)
+  const calculateDewPointC = (tC, h) => {
     const a = 17.27, b = 237.7;
-    const alpha = ((a * t) / (b + t)) + Math.log(h / 100);
+    const alpha = ((a * tC) / (b + tC)) + Math.log(h / 100);
     return (b * alpha) / (a - alpha);
   };
-  const dewPoint = calculateDewPoint(temp, humidity);
+  const dewPoint = fromCelsius(calculateDewPointC(toCelsius(temp, unit), humidity), unit);
 
-  // Formatting local time helper
-  const formatTime = (timestamp) => {
-    const localTime = new Date((timestamp + timezone) * 1000);
-    return localTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'UTC' });
-  };
+  // Sunrise/sunset shown in the searched location's own time zone
+  const formatTime = (timestamp) => formatClock(timestamp, timezoneName);
 
   // Sun Arc progress calculation
   const now = Math.floor(Date.now() / 1000);
@@ -210,7 +209,7 @@ const WeatherStats = ({ weatherData, unit, mainCardClass, textColor, textSubColo
             {/* Color spectrum slider */}
             <div className="relative w-full h-1.5 rounded-full bg-gradient-to-r from-emerald-500 via-yellow-400 via-orange-500 via-red-500 to-purple-600 mt-1.5">
               <div
-                className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-2 border-emerald-500 rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.15)] z-10"
+                className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-2 border-slate-700 rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.15)] z-10"
                 style={{ left: `calc(${uvDetails.pct}% - 6px)` }}
               />
             </div>

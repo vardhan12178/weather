@@ -5,7 +5,7 @@ const RecentSearches = ({ searches, onSearch }) => {
   if (!searches || searches.length === 0) return null;
 
   return (
-    <div className="mt-4 w-full animate-in fade-in slide-in-from-top-2">
+    <div className="mt-4 w-full animate-fadeIn">
       <h3 className="text-xs font-bold text-gray-500 dark:text-white/40 uppercase tracking-wider mb-3 px-1">
         Recently viewed
       </h3>

@@ -1,6 +1,25 @@
 import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { CanvasTexture } from 'three';
 
+// Soft round sprite drawn in code, so particles render as droplets/flakes
+// instead of hard squares (and nothing has to be downloaded).
+let dotTexture;
+const getDotTexture = () => {
+  if (dotTexture) return dotTexture;
+  const size = 64;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  g.addColorStop(0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.4, 'rgba(255,255,255,0.6)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  dotTexture = new CanvasTexture(canvas);
+  return dotTexture;
+};
 
 const Precipitation = ({ type, count = 1000 }) => {
   const mesh = useRef();
@@ -38,9 +57,11 @@ const Precipitation = ({ type, count = 1000 }) => {
     return { positions: pos, velocities: vel };
   }, [count]);
 
+  const isVisible = config.size > 0 && config.opacity > 0;
+
   // Animation Loop (Runs 60fps)
   useFrame(() => {
-    if (!mesh.current) return;
+    if (!mesh.current || !isVisible) return;
 
     // Access the raw geometric positions
     const positions = mesh.current.geometry.attributes.position.array;
@@ -65,6 +86,9 @@ const Precipitation = ({ type, count = 1000 }) => {
     mesh.current.geometry.attributes.position.needsUpdate = true;
   });
 
+  // Types without a visual config (e.g. Smoke) would only burn CPU every frame
+  if (!isVisible) return null;
+
   return (
     <points ref={mesh}>
       <bufferGeometry>
@@ -76,7 +100,8 @@ const Precipitation = ({ type, count = 1000 }) => {
         />
       </bufferGeometry>
       <pointsMaterial
-        size={config.size}
+        size={config.size * 1.6}
+        map={getDotTexture()}
         color={config.color}
         transparent
         opacity={config.opacity}

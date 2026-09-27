@@ -20,14 +20,13 @@ const WeatherDashboard = ({
   data,
   setLocation,
   setCoordinates,
-  darkMode,
   unit,
   toggleUnit,
   favorites,
   addToFavorites,
   removeFromFavorites
 }) => {
-  const { weatherData, forecastData, aqi, loading, error } = data;
+  const { weatherData, forecastData, aqi, loading, error, refresh, refreshing } = data;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -45,15 +44,11 @@ const WeatherDashboard = ({
     show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 50 } }
   };
 
-  let isDay = true;
-  if (weatherData) {
-    const { dt, sys } = weatherData;
-    isDay = dt > sys.sunrise && dt < sys.sunset;
-  }
+  const isDay = weatherData ? weatherData.isDay : true;
 
   // Mobile borderless: styles are card-like only on medium screens and up (md:prefix)
   const mainCardClass = isDay
-    ? 'md:bg-white/68 md:backdrop-blur-2xl md:border md:border-white/60 md:shadow-[0_20px_60px_rgba(15,23,42,0.12)] rounded-[2.5rem]'
+    ? 'md:bg-white/70 md:backdrop-blur-2xl md:border md:border-white/60 md:shadow-[0_20px_60px_rgba(15,23,42,0.12)] rounded-[2.5rem]'
     : 'md:bg-slate-950/35 md:backdrop-blur-2xl md:border md:border-white/15 md:shadow-[0_20px_60px_rgba(2,6,23,0.5)] rounded-[2.5rem]';
   
   const textColor = isDay ? 'text-slate-900' : 'text-slate-100';
@@ -61,7 +56,7 @@ const WeatherDashboard = ({
 
   return (
     <div className="relative z-10 h-screen flex flex-col overflow-hidden">
-      <Header setLocation={setLocation} setCoordinates={setCoordinates} darkMode={darkMode} />
+      <Header setLocation={setLocation} setCoordinates={setCoordinates} />
 
       <main className="flex-grow w-full overflow-y-auto overflow-x-hidden flex flex-col items-center pb-12 px-4 sm:px-6 lg:px-8">
         {loading && (
@@ -76,7 +71,7 @@ const WeatherDashboard = ({
 
         {!loading && error && (
           <div className="z-50 w-full h-full flex items-center justify-center p-4">
-            <NotFound setLocation={setLocation} />
+            <NotFound type={error} setLocation={setLocation} />
           </div>
         )}
 
@@ -90,7 +85,7 @@ const WeatherDashboard = ({
             {/* 1. Saved Places (Favorites) horizontal scroll bar */}
             {favorites?.length > 0 && (
               <motion.div variants={itemVariants} className={`p-4 sm:p-5 overflow-hidden ${mainCardClass}`}>
-                <FavoritesList favorites={favorites} setLocation={setLocation} removeFromFavorites={removeFromFavorites} />
+                <FavoritesList favorites={favorites} unit={unit} setLocation={setLocation} removeFromFavorites={removeFromFavorites} />
               </motion.div>
             )}
 
@@ -100,7 +95,8 @@ const WeatherDashboard = ({
                 weatherData={weatherData}
                 forecastData={forecastData}
                 aqi={aqi}
-                setCoordinates={setCoordinates}
+                onRefresh={refresh}
+                refreshing={refreshing}
                 unit={unit}
                 toggleUnit={toggleUnit}
                 isFavorite={favorites.some((fav) => fav.name === weatherData.name)}
@@ -121,7 +117,6 @@ const WeatherDashboard = ({
                 mainCardClass={mainCardClass} 
                 textColor={textColor} 
                 textSubColor={textSubColor} 
-                isDay={isDay}
               />
             </motion.div>
             

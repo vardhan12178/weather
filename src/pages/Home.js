@@ -3,16 +3,14 @@ import { Canvas } from '@react-three/fiber';
 import { useWeatherData } from '../hooks/useWeatherData';
 import WeatherDashboard from '../components/WeatherDashboard';
 import WeatherScene from '../components/Scene/WeatherScene';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 const Home = () => {
   const weatherState = useWeatherData();
   const { weatherData } = weatherState;
 
-  let isDay = true;
-  if (weatherData) {
-    const { dt, sys } = weatherData;
-    isDay = dt > sys.sunrise && dt < sys.sunset;
-  }
+  // Day/night comes straight from the API for the searched location
+  const isDay = weatherData ? weatherData.isDay : true;
   const darkMode = !isDay;
 
   useEffect(() => {
@@ -53,9 +51,13 @@ const Home = () => {
   return (
     <div className={`relative w-full min-h-screen overflow-hidden transition-all duration-1000 ${getBackgroundClass()}`}>
       <div className={`absolute inset-0 z-0 transition-opacity duration-1000 ${isDay ? 'opacity-80' : 'opacity-95'}`}>
-        <Canvas camera={{ position: [0, 0, 5], fov: 75 }}>
-          <WeatherScene condition={condition} isDay={isDay} />
-        </Canvas>
+        {/* The 3D backdrop is decorative: if it fails (e.g. the cloud texture can't
+            be downloaded), drop it and keep the forecast on screen. */}
+        <ErrorBoundary fallback={null}>
+          <Canvas camera={{ position: [0, 0, 5], fov: 75 }}>
+            <WeatherScene condition={condition} isDay={isDay} />
+          </Canvas>
+        </ErrorBoundary>
       </div>
 
       {/* Soft light bloom + gentle vignette so content reads cleanly over the sky */}
@@ -67,7 +69,6 @@ const Home = () => {
           data={weatherState}
           setLocation={weatherState.setLocation}
           setCoordinates={weatherState.setCoordinates}
-          darkMode={darkMode}
           unit={weatherState.unit}
           toggleUnit={weatherState.toggleUnit}
           favorites={weatherState.favorites}

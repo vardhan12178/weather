@@ -1,13 +1,14 @@
 import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion } from 'framer-motion';
+import { formatHour } from '../utils/time';
 
 const TemperatureChart = ({ forecastData, unit }) => {
     if (!forecastData || !forecastData.list) return null;
 
-    // Prepare data for 24 hours (8 data points * 3 hours = 24 hours)
-    const chartData = forecastData.list.slice(0, 8).map(item => ({
-        time: new Date(item.dt * 1000).toLocaleTimeString([], { hour: 'numeric', hour12: true }),
+    // Next 24 hours in 1-hour steps
+    const chartData = forecastData.list.slice(0, 24).map(item => ({
+        time: formatHour(item.dt, forecastData.timezoneName),
         temp: Math.round(item.main.temp),
         feelsLike: Math.round(item.main.feels_like),
         timestamp: item.dt
@@ -60,6 +61,7 @@ const TemperatureChart = ({ forecastData, unit }) => {
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.15)" className="dark:opacity-30" />
                     <XAxis
                         dataKey="time"
+                        interval={3}
                         stroke="#64748b"
                         style={{ fontSize: '10px', fontWeight: 'bold' }}
                         tick={{ fill: '#64748b' }}
@@ -79,7 +81,7 @@ const TemperatureChart = ({ forecastData, unit }) => {
                         stroke="#2f6bed"
                         strokeWidth={3}
                         fill="url(#tempGradient)"
-                        dot={{ fill: '#2f6bed', r: 4 }}
+                        dot={false}
                         activeDot={{ r: 6, fill: '#2f6bed' }}
                     />
                     <Area
@@ -89,7 +91,7 @@ const TemperatureChart = ({ forecastData, unit }) => {
                         strokeWidth={2}
                         strokeDasharray="5 5"
                         fill="url(#feelsGradient)"
-                        dot={{ fill: '#c084fc', r: 3 }}
+                        dot={false}
                     />
                 </AreaChart>
             </ResponsiveContainer>

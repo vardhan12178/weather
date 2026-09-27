@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronDown, ChevronUp } from 'react-feather';
+import { toCelsius, toMetersPerSecond, windUnitLabel } from '../utils/units';
 
-const WeatherRecommendations = ({ weatherData }) => {
+const WeatherRecommendations = ({ weatherData, unit = 'metric' }) => {
   const [isVisible, setIsVisible] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
   if (!weatherData || !isVisible) return null;
 
   const { main, weather, wind, dt, timezone } = weatherData;
-  const temp = main.temp; // degrees in current unit (component is unit-agnostic for display)
-  const tempC = main.temp; // We receive metric by default; see note below
+  const temp = main.temp;                    // in the user's unit, for display
+  const tempC = toCelsius(main.temp, unit);  // thresholds below are in °C
   const humidity = main.humidity;
-  const condition = weather[0].main;
-  const windSpeed = wind.speed;
+  const condition = weather[0]?.main || 'Clear';
+  const windSpeed = toMetersPerSecond(wind.speed, unit); // thresholds below are in m/s
 
   // Derive local hour (0–23) from Unix timestamp + timezone offset
   const localTime = new Date((dt + timezone) * 1000);
@@ -89,13 +90,16 @@ const WeatherRecommendations = ({ weatherData }) => {
     }
 
     // 13. Pleasant conditions (18–28°C, calm)
-    if (tempC >= 18 && tempC <= 28 && windSpeed < 5 && condition !== 'Rain') {
+    if (tempC >= 18 && tempC <= 28 && windSpeed < 5 && isNight) {
+      return { emoji: '😊', text: "Pleasant, calm night — comfortable for an evening stroll." };
+    }
+    if (tempC >= 18 && tempC <= 28 && windSpeed < 5) {
       return { emoji: '😊', text: "Lovely weather today — comfortable for outdoor activities, morning walks, or a picnic in the park." };
     }
 
     // 14. Windy
     if (windSpeed > 10) {
-      return { emoji: '💨', text: `Strong winds (~${Math.round(windSpeed)} m/s). Secure loose items outdoors and be careful with kites or canopies!` };
+      return { emoji: '💨', text: `Strong winds (~${Math.round(wind.speed)} ${windUnitLabel(unit)}). Secure loose items outdoors and be careful with kites or canopies!` };
     }
 
     // 15. High humidity
@@ -104,7 +108,7 @@ const WeatherRecommendations = ({ weatherData }) => {
     }
 
     // Default
-    return { emoji: '🌤️', text: `${Math.round(temp)}° and ${condition.toLowerCase()} outside. Enjoy your day!` };
+    return { emoji: '🌤️', text: `${Math.round(temp)}° and ${(weather[0]?.description || condition).toLowerCase()} outside. Enjoy your day!` };
   };
 
   const rec = getRecommendation();

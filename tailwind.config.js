@@ -1,11 +1,10 @@
 module.exports = {
-  purge: ['./src/**/*.{js,jsx,ts,tsx}', './public/index.html'],
+  content: ['./src/**/*.{js,jsx,ts,tsx}', './public/index.html'],
   darkMode: 'class',
   theme: {
     extend: {
       fontFamily: {
         sans: ['Plus Jakarta Sans', 'Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
-        poppins: ['Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'],
       },
       colors: {
         brand: {
@@ -46,9 +45,6 @@ module.exports = {
         float: 'floatY 6s ease-in-out infinite',
       },
     },
-  },
-  variants: {
-    extend: {},
   },
   plugins: [],
 };

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { MapPin, Search, X, CloudRain } from 'react-feather';
 import SearchBox from './Search/SearchBox';
 
-const Header = ({ setLocation, setCoordinates, darkMode }) => {
+const Header = ({ setLocation, setCoordinates }) => {
   const [isGeolocationLoading, setIsGeolocationLoading] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
@@ -19,7 +19,8 @@ const Header = ({ setLocation, setCoordinates, darkMode }) => {
         setCoordinates({ lat: pos.coords.latitude, lon: pos.coords.longitude });
         setIsGeolocationLoading(false);
       },
-      () => setIsGeolocationLoading(false)
+      () => setIsGeolocationLoading(false),
+      { timeout: 10000 }
     );
   };
 
@@ -53,6 +54,7 @@ const Header = ({ setLocation, setCoordinates, darkMode }) => {
             disabled={isGeolocationLoading}
             className="w-10 h-10 flex items-center justify-center rounded-full bg-white/60 dark:bg-white/5 hover:bg-brand-500 hover:text-white text-slate-700 dark:text-slate-100 border border-white/70 dark:border-white/10 hover:border-brand-500 shadow-soft backdrop-blur-md transition-all duration-200 active:scale-95 disabled:opacity-50"
             title="Use my location"
+            aria-label="Use my location"
           >
             {isGeolocationLoading ? (
               <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
@@ -69,6 +71,7 @@ const Header = ({ setLocation, setCoordinates, darkMode }) => {
             disabled={isGeolocationLoading}
             className="p-2.5 text-slate-700 dark:text-white bg-white/55 dark:bg-white/5 border border-white/70 dark:border-white/10 rounded-full backdrop-blur-md shadow-soft transition-all duration-200 active:scale-95 disabled:opacity-50"
             title="Use my location"
+            aria-label="Use my location"
           >
             {isGeolocationLoading ? (
               <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
@@ -81,6 +84,8 @@ const Header = ({ setLocation, setCoordinates, darkMode }) => {
             onClick={() => setIsSearchOpen((open) => !open)}
             className="p-2.5 text-slate-700 dark:text-white bg-white/55 dark:bg-white/5 border border-white/70 dark:border-white/10 rounded-full backdrop-blur-md shadow-soft transition-all duration-200 active:scale-95"
             title="Toggle search"
+            aria-label={isSearchOpen ? 'Close search' : 'Open search'}
+            aria-expanded={isSearchOpen}
           >
             {isSearchOpen ? <X size={16} /> : <Search size={16} />}
           </button>
@@ -89,7 +94,7 @@ const Header = ({ setLocation, setCoordinates, darkMode }) => {
 
       {/* Mobile Search Overlay */}
       {isSearchOpen && (
-        <div className="md:hidden mt-3 w-full max-w-7xl mx-auto px-1 animate-in fade-in slide-in-from-top-2">
+        <div className="md:hidden mt-3 w-full max-w-7xl mx-auto px-1 animate-fadeIn">
           <SearchBox onSearch={handleSearch} isMobileOpen={isSearchOpen} />
         </div>
       )}
