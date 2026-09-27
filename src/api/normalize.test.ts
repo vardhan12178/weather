@@ -39,6 +39,8 @@ const makeRaw = (): RawForecast => {
       is_day: time.map((_, i) => (i % 24 >= 6 && i % 24 < 18 ? 1 : 0)),
       wind_speed_10m: time.map(() => 3),
       wind_direction_10m: time.map(() => 240),
+      precipitation: time.map((_, i) => (i === 16 ? 1.2 : 0)),
+      wind_gusts_10m: time.map(() => null),
       uv_index: time.map((_, i) => i % 24),
       visibility: time.map((_, i) => (i === 14 ? 24_000 : 8_000)),
     },
@@ -84,6 +86,9 @@ describe('normalizeReport', () => {
     expect(report.hourly).toHaveLength(48);
     expect(report.hourly[1].pop).toBe(0); // null → 0
     expect(report.hourly[4].isDay).toBe(false); // 18:00
+    expect(report.hourly[2].precipitation).toBe(1.2);
+    expect(report.hourly[0].uvIndex).toBe(14);
+    expect(report.hourly[0].windGust).toBeNull();
   });
 
   it('uses the API daily data directly', () => {

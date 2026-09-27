@@ -9,6 +9,8 @@ interface PlaceState {
   place: Place | null;
   status: PlaceStatus;
   error: WeatherErrorCode | null;
+  /** True when `place` is the device's own position */
+  isCurrentLocation?: boolean;
 }
 
 const GEO_OPTIONS: PositionOptions = { timeout: 10_000, maximumAge: 10 * 60_000 };
@@ -85,6 +87,7 @@ export const usePlace = () => {
           place: { lat: pos.coords.latitude, lon: pos.coords.longitude },
           status: 'ready',
           error: null,
+          isCurrentLocation: true,
         });
       },
       (err) => fail(err.code === err.PERMISSION_DENIED ? 'geo-denied' : 'geo-unavailable'),

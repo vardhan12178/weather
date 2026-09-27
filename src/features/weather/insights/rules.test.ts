@@ -38,7 +38,7 @@ describe('getAlert', () => {
   it('only shows monsoon alerts in India', () => {
     const rain = weather({ condition: 'Rain' });
     expect(getAlert(rain, india)?.kind).toBe('monsoon');
-    expect(getAlert(rain, uk)?.kind).toBe('rain');
+    expect(getAlert(rain, uk)).toBeNull(); // everyday rain goes in the summary line
   });
 
   it('formats wind in the chosen unit', () => {
@@ -47,9 +47,10 @@ describe('getAlert', () => {
     expect(getAlert(windy, { ...india, unit: 'imperial' })?.message).toContain('45 mph');
   });
 
-  it('ignores UV at night', () => {
-    expect(getAlert(weather({ uvIndex: 9, isDay: false }), india)).toBeNull();
-    expect(getAlert(weather({ uvIndex: 9 }), india)?.kind).toBe('uv');
+  it('only warns about extreme UV, and never at night', () => {
+    expect(getAlert(weather({ uvIndex: 9 }), india)).toBeNull();
+    expect(getAlert(weather({ uvIndex: 11 }), india)?.kind).toBe('uv');
+    expect(getAlert(weather({ uvIndex: 11, isDay: false }), india)).toBeNull();
   });
 });
 

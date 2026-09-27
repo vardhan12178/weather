@@ -54,8 +54,12 @@ export interface HourlyForecast extends ConditionInfo {
   humidity: number;
   /** Probability of precipitation, 0–100 */
   pop: number;
+  /** mm expected in this hour */
+  precipitation: number;
   windSpeed: number;
   windDeg: number;
+  windGust: number | null;
+  uvIndex: number;
 }
 
 export interface DailyForecast extends ConditionInfo {

@@ -94,8 +94,11 @@ const normalizeHourly = (raw: RawForecast): HourlyForecast[] => {
       feelsLike: h.apparent_temperature[i],
       humidity: h.relative_humidity_2m[i],
       pop: h.precipitation_probability[i] ?? 0,
+      precipitation: h.precipitation?.[i] ?? 0,
       windSpeed: h.wind_speed_10m[i],
       windDeg: h.wind_direction_10m[i],
+      windGust: h.wind_gusts_10m?.[i] ?? null,
+      uvIndex: h.uv_index[i] ?? 0,
     });
   }
   return hours;

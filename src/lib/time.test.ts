@@ -6,8 +6,8 @@ const SUNRISE_IST = Date.UTC(2026, 8, 27, 0, 37) / 1000;
 
 describe('time', () => {
   it("formats in the location's zone, not the viewer's", () => {
-    expect(formatClock(SUNRISE_IST, 'Asia/Kolkata')).toMatch(/06:07\s?AM/i);
-    expect(formatClock(SUNRISE_IST, 'America/New_York')).toMatch(/08:37\s?PM/i);
+    expect(formatClock(SUNRISE_IST, 'Asia/Kolkata')).toMatch(/^6:07\s?AM$/i);
+    expect(formatClock(SUNRISE_IST, 'America/New_York')).toMatch(/^8:37\s?PM$/i);
     expect(formatHour(SUNRISE_IST, 'Asia/Kolkata')).toMatch(/^6\s?AM$/i);
   });
 

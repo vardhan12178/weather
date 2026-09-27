@@ -33,10 +33,12 @@ export interface RawForecast {
     relative_humidity_2m: number[];
     apparent_temperature: number[];
     precipitation_probability: (number | null)[];
+    precipitation: (number | null)[];
     weather_code: number[];
     is_day: number[];
     wind_speed_10m: number[];
     wind_direction_10m: number[];
+    wind_gusts_10m: (number | null)[];
     uv_index: (number | null)[];
     visibility: (number | null)[];
   };
@@ -100,8 +102,8 @@ export const fetchForecast = (lat: number, lon: number, signal?: AbortSignal) =>
       ].join(','),
       hourly: [
         'temperature_2m', 'relative_humidity_2m', 'apparent_temperature',
-        'precipitation_probability', 'weather_code', 'is_day',
-        'wind_speed_10m', 'wind_direction_10m', 'uv_index', 'visibility',
+        'precipitation_probability', 'precipitation', 'weather_code', 'is_day',
+        'wind_speed_10m', 'wind_direction_10m', 'wind_gusts_10m', 'uv_index', 'visibility',
       ].join(','),
       daily: [
         'weather_code', 'temperature_2m_max', 'temperature_2m_min',

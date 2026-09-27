@@ -4,6 +4,8 @@ import type { CurrentWeather, Unit } from '../../../types/weather';
 
 // Pure rules for the alert banner and the advice line. Inputs are metric, so
 // thresholds are in °C and m/s; `unit` only affects the wording.
+// The banner is only for real warnings: everyday rain is covered by the hourly
+// summary line, and ordinary high UV by the UV tile.
 
 export interface InsightContext {
   unit: Unit;
@@ -12,7 +14,7 @@ export interface InsightContext {
   country?: string;
 }
 
-export type AlertKind = 'storm' | 'heat' | 'freeze' | 'monsoon' | 'fog' | 'wind' | 'rain' | 'uv';
+export type AlertKind = 'storm' | 'heat' | 'freeze' | 'monsoon' | 'fog' | 'wind' | 'uv';
 export type AlertTone = 'amber' | 'red' | 'orange' | 'sky' | 'blue' | 'slate' | 'purple';
 
 export interface WeatherAlert {
@@ -80,22 +82,10 @@ export const getAlert = (c: CurrentWeather, ctx: InsightContext): WeatherAlert |
       message: `Winds near ${formatWind(c.windSpeed, ctx.unit)}. Secure loose objects and avoid exposed areas.`,
     };
   }
-  if (isWet(c)) {
-    return {
-      kind: 'rain', tone: 'blue', title: 'Rain expected',
-      message: 'Carry an umbrella and allow extra travel time if heading out.',
-    };
-  }
   if (c.isDay && c.uvIndex >= 11) {
     return {
       kind: 'uv', tone: 'purple', title: 'Extreme UV',
       message: `UV index ${Math.round(c.uvIndex)}. Avoid the midday sun; wear SPF 50+, sunglasses and a hat.`,
-    };
-  }
-  if (c.isDay && c.uvIndex >= 8) {
-    return {
-      kind: 'uv', tone: 'orange', title: 'Very high UV',
-      message: `UV index ${Math.round(c.uvIndex)}. Apply sunscreen and seek shade around midday.`,
     };
   }
   return null;

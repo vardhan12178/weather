@@ -1,7 +1,9 @@
 # Weatherly
 
-A live weather app: current conditions, a 24-hour and 7-day forecast, air
-quality, alerts and advice, saved places, and a weather-reactive backdrop.
+A live weather app in the style of modern phone weather apps: a condition-
+coloured sky, the current temperature up front, an hourly strip with a
+one-line summary, a 7-day list, tappable detail tiles with charts, saved places,
+and alerts for real warnings. Mobile-first; two columns on desktop.
 
 Weather data comes from [Open-Meteo](https://open-meteo.com/) (no API key
 needed) and place names from [OpenStreetMap Nominatim](https://nominatim.org/).
@@ -35,11 +37,14 @@ src/
   types/        the app's weather model (always metric; converted for display)
   context/      user settings (unit), persisted
   features/
-    weather/    dashboard sections, data hooks (TanStack Query), alert/advice rules
-    search/     search box with live suggestions, recent searches
-    favorites/  saved places with live conditions
-    scene/      3D weather backdrop (lazy-loaded)
-  components/   app-wide pieces: header, footer, icons, error handling
+    weather/    screen sections, tiles, detail sheets + SVG charts, sky theme,
+                data hooks (TanStack Query), alert/summary rules
+    places/     places sheet: search, my location, saved, recent
+    search/     live suggestions, recent searches
+    favorites/  saved places
+    settings/   settings sheet (units, refresh)
+  components/   app-wide pieces: top bar, bottom sheet, icon button, icons, errors
+  styles/       Tailwind theme + the CSS weather backdrop (sky.css)
   pages/        Home — wires the hooks to the UI
 ```
 
@@ -52,5 +57,9 @@ Key ideas:
 - **Server state lives in TanStack Query** (caching, retries, refetch on focus);
   `features/weather/usePlace` decides which place is shown (GPS, search, saved,
   or the last place viewed).
-- **Heavy code loads on demand**: charts when the chart view opens, the 3D
-  backdrop after the forecast has loaded (and never with reduced motion on).
+- **No heavy libraries.** The sky (rain, snow, stars, clouds, lightning) is
+  CSS animated with `transform` only; charts are small hand-written SVG. The
+  whole app is ~100 KB of JavaScript gzipped.
+- **Accessible by default**: 44 px touch targets, nothing under 12 px, WCAG
+  4.5:1 text contrast on every sky, sheets built on `<dialog>`, charts readable
+  with arrow keys and as a table, and all motion off with "reduce motion".

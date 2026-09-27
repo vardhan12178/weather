@@ -19,7 +19,7 @@ export const formatHour = (t: number, tz?: string) =>
   formatInZone(t, tz, { hour: 'numeric', hour12: true });
 
 export const formatClock = (t: number, tz?: string) =>
-  formatInZone(t, tz, { hour: '2-digit', minute: '2-digit', hour12: true });
+  formatInZone(t, tz, { hour: 'numeric', minute: '2-digit', hour12: true });
 
 export const formatWeekday = (t: number, tz?: string) => formatInZone(t, tz, { weekday: 'short' });
 

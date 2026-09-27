@@ -1,0 +1,188 @@
+/*
+  Weather backdrop — pure CSS. Moving layers are tall, repeating SVG tiles
+  animated with `transform` by exactly one tile, so the loop is seamless and
+  runs on the compositor (no per-frame repaint, no JS, no WebGL).
+*/
+
+@property --sky-top {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: #1a5bbd;
+}
+@property --sky-bottom {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: #3f86d6;
+}
+
+.sky {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: linear-gradient(to bottom, var(--sky-top), var(--sky-bottom));
+  /* Registered custom properties let the sky colours cross-fade between cities */
+  transition:
+    --sky-top 1.2s ease,
+    --sky-bottom 1.2s ease;
+}
+
+.sky > * {
+  position: absolute;
+  inset: 0;
+}
+
+/* ── Sun: a soft glow in the upper corner ────────────────────────────────── */
+.sky-sun {
+  background: radial-gradient(circle at 82% 6%, rgb(255 238 180 / 0.55), rgb(255 238 180 / 0.12) 28%, transparent 55%);
+  animation: sky-breathe 9s ease-in-out infinite alternate;
+}
+
+/* ── Stars: two tiles, the second twinkles ───────────────────────────────── */
+.sky-stars,
+.sky-stars::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280'%3E%3Cg fill='white'%3E%3Ccircle cx='24' cy='40' r='1'/%3E%3Ccircle cx='96' cy='12' r='.7'/%3E%3Ccircle cx='170' cy='64' r='1.2'/%3E%3Ccircle cx='240' cy='30' r='.8'/%3E%3Ccircle cx='60' cy='150' r='.9'/%3E%3Ccircle cx='132' cy='118' r='.6'/%3E%3Ccircle cx='210' cy='170' r='1'/%3E%3Ccircle cx='262' cy='232' r='.7'/%3E%3Ccircle cx='30' cy='250' r='.8'/%3E%3Ccircle cx='150' cy='228' r='1.1'/%3E%3C/g%3E%3C/svg%3E");
+  mask-image: linear-gradient(to bottom, black 0%, black 55%, transparent 90%);
+  opacity: 0.8;
+}
+.sky-stars::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-position: 140px 90px;
+  animation: sky-twinkle 4s ease-in-out infinite alternate;
+}
+
+/* ── Clouds: a few large blurred shapes drifting slowly ──────────────────── */
+.sky-clouds span {
+  position: absolute;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.16);
+  filter: blur(36px);
+  animation: sky-drift 70s linear infinite alternate;
+}
+.sky-clouds span:nth-child(1) {
+  width: 90vw;
+  height: 34vh;
+  top: -8vh;
+  left: -30vw;
+}
+.sky-clouds span:nth-child(2) {
+  width: 70vw;
+  height: 26vh;
+  top: 12vh;
+  right: -25vw;
+  animation-duration: 95s;
+  animation-direction: alternate-reverse;
+}
+.sky-clouds span:nth-child(3) {
+  width: 60vw;
+  height: 22vh;
+  top: 38vh;
+  left: -10vw;
+  background: rgb(255 255 255 / 0.09);
+  animation-duration: 120s;
+}
+
+/* ── Rain: two parallax layers of streaks ─────────────────────────────────── */
+.sky-rain,
+.sky-rain::after {
+  top: -200px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='200'%3E%3Cg stroke='white' stroke-width='1.2' stroke-linecap='round'%3E%3Cline x1='12' y1='10' x2='9' y2='38' stroke-opacity='.45'/%3E%3Cline x1='52' y1='70' x2='49' y2='98' stroke-opacity='.35'/%3E%3Cline x1='88' y1='24' x2='85' y2='52' stroke-opacity='.5'/%3E%3Cline x1='30' y1='130' x2='27' y2='158' stroke-opacity='.4'/%3E%3Cline x1='104' y1='150' x2='101' y2='178' stroke-opacity='.35'/%3E%3Cline x1='70' y1='176' x2='67' y2='200' stroke-opacity='.3'/%3E%3C/g%3E%3C/svg%3E");
+  animation: sky-fall-200 0.55s linear infinite;
+}
+.sky-rain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-size: 90px 150px;
+  opacity: 0.6;
+  animation: sky-fall-200 0.9s linear infinite;
+}
+
+/* ── Snow: slow flakes, two sizes ─────────────────────────────────────────── */
+.sky-snow,
+.sky-snow::after {
+  top: -200px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cg fill='white'%3E%3Ccircle cx='20' cy='30' r='2' opacity='.8'/%3E%3Ccircle cx='90' cy='80' r='1.6' opacity='.6'/%3E%3Ccircle cx='160' cy='20' r='2.4' opacity='.7'/%3E%3Ccircle cx='50' cy='150' r='1.8' opacity='.7'/%3E%3Ccircle cx='130' cy='130' r='2.2' opacity='.8'/%3E%3Ccircle cx='180' cy='180' r='1.4' opacity='.6'/%3E%3C/g%3E%3C/svg%3E");
+  animation: sky-fall-200 14s linear infinite;
+}
+.sky-snow::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-position: 100px 60px;
+  transform-origin: center;
+  animation: sky-fall-200 22s linear infinite;
+  opacity: 0.6;
+}
+
+/* ── Storm: an occasional lightning flash ─────────────────────────────────── */
+.sky-storm {
+  background: rgb(255 255 255 / 0.9);
+  opacity: 0;
+  animation: sky-flash 9s linear infinite;
+}
+
+/* ── Fog: soft horizontal bands ───────────────────────────────────────────── */
+.sky-fog {
+  background:
+    radial-gradient(ellipse 80% 12% at 30% 30%, rgb(255 255 255 / 0.18), transparent 70%),
+    radial-gradient(ellipse 90% 14% at 70% 55%, rgb(255 255 255 / 0.14), transparent 70%),
+    radial-gradient(ellipse 70% 10% at 40% 80%, rgb(255 255 255 / 0.12), transparent 70%);
+  animation: sky-drift 40s ease-in-out infinite alternate;
+}
+
+@keyframes sky-fall-200 {
+  to {
+    transform: translateY(200px);
+  }
+}
+@keyframes sky-drift {
+  to {
+    transform: translateX(18vw);
+  }
+}
+@keyframes sky-breathe {
+  from {
+    opacity: 0.75;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes sky-twinkle {
+  from {
+    opacity: 0.2;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes sky-flash {
+  0%,
+  90%,
+  91.5%,
+  93%,
+  100% {
+    opacity: 0;
+  }
+  90.6% {
+    opacity: 0.35;
+  }
+  92.2% {
+    opacity: 0.2;
+  }
+}
+
+/* Motion off: keep the colours and static shapes, stop everything moving */
+@media (prefers-reduced-motion: reduce) {
+  .sky *,
+  .sky *::after {
+    animation: none !important;
+  }
+  .sky-storm {
+    display: none;
+  }
+}
