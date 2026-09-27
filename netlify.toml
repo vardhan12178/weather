@@ -1,0 +1,8 @@
+# Vite builds to dist/ (Create React App used build/). This file overrides the
+# build settings in the Netlify UI so deploys keep working after the switch.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
