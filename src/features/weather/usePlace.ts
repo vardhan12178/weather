@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { searchPlaces } from '../../api/openMeteo';
+import { distanceKm } from '../../lib/geo';
 import { readJson, STORAGE_KEYS } from '../../lib/storage';
 import type { Place, WeatherErrorCode } from '../../types/weather';
 
@@ -11,22 +12,42 @@ interface PlaceState {
   error: WeatherErrorCode | null;
   /** True when `place` is the device's own position */
   isCurrentLocation?: boolean;
+  /** A search failed but the current forecast stays on screen (shown as a toast) */
+  notice?: 'offline-search' | null;
+}
+
+/** What Home saves as the last place viewed */
+export interface LastPlace extends Place {
+  isCurrentLocation?: boolean;
 }
 
 const GEO_OPTIONS: PositionOptions = { timeout: 10_000, maximumAge: 10 * 60_000 };
 
-const loadLastPlace = (): Place | null => {
-  const saved = readJson<Place | null>(STORAGE_KEYS.lastPlace, null);
+/** A new GPS fix closer than this keeps the place on screen (and its cached forecast) */
+const SAME_PLACE_KM = 2;
+
+const loadLastPlace = (): LastPlace | null => {
+  const saved = readJson<LastPlace | null>(STORAGE_KEYS.lastPlace, null);
   return saved && typeof saved.lat === 'number' && typeof saved.lon === 'number' ? saved : null;
 };
 
 const hasGeolocation = () => 'geolocation' in navigator;
 
-/** Without geolocation there's nothing to wait for: start from the last place, or ask for a search */
+const offlineOr = (error: WeatherErrorCode): WeatherErrorCode => (navigator.onLine ? error : 'offline');
+
+/**
+ * Start like an installed app: reopen the last place instantly (its forecast
+ * is restored from the offline cache) instead of waiting for GPS. If that was
+ * "my location", GPS still refines it in the background.
+ */
 const initialState = (): PlaceState => {
-  if (hasGeolocation()) return { place: null, status: 'locating', error: null };
   const last = loadLastPlace();
-  return last ? { place: last, status: 'ready', error: null } : { place: null, status: 'error', error: 'geo-unavailable' };
+  if (last) {
+    const { isCurrentLocation, ...place } = last;
+    return { place, status: 'ready', error: null, isCurrentLocation: !!isCurrentLocation };
+  }
+  if (hasGeolocation()) return { place: null, status: 'locating', error: null };
+  return { place: null, status: 'error', error: 'geo-unavailable' };
 };
 
 /**
@@ -59,9 +80,16 @@ export const usePlace = () => {
       );
     } catch {
       if (id !== requestRef.current) return;
-      setState({ place: null, status: 'error', error: 'network' });
+      setState((s) =>
+        // Offline with a forecast on screen: keep it and just explain why the search didn't work
+        !navigator.onLine && s.place
+          ? { ...s, status: 'ready', error: null, notice: 'offline-search' }
+          : { place: null, status: 'error', error: offlineOr('network') },
+      );
     }
   }, []);
+
+  const clearNotice = useCallback(() => setState((s) => ({ ...s, notice: null })), []);
 
   /**
    * Ask for the device position. State only changes in the async callbacks.
@@ -74,21 +102,22 @@ export const usePlace = () => {
       setState((s) => {
         if (s.place) return { ...s, status: 'ready', error: null };
         const last = loadLastPlace();
-        return last
-          ? { place: last, status: 'ready', error: null }
-          : { place: null, status: 'error', error };
+        if (!last) return { place: null, status: 'error', error };
+        const { isCurrentLocation, ...place } = last;
+        return { place, status: 'ready', error: null, isCurrentLocation: !!isCurrentLocation };
       });
     };
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         if (id !== requestRef.current) return;
-        setState({
-          place: { lat: pos.coords.latitude, lon: pos.coords.longitude },
-          status: 'ready',
-          error: null,
-          isCurrentLocation: true,
-        });
+        const fix = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+        setState((s) =>
+          // Same neighbourhood as the place already shown: keep it (and its name/cache)
+          s.isCurrentLocation && s.place && distanceKm(s.place, fix) < SAME_PLACE_KM
+            ? { ...s, status: 'ready', error: null }
+            : { place: fix, status: 'ready', error: null, isCurrentLocation: true },
+        );
       },
       (err) => fail(err.code === err.PERMISSION_DENIED ? 'geo-denied' : 'geo-unavailable'),
       GEO_OPTIONS,
@@ -98,19 +127,21 @@ export const usePlace = () => {
   /** "Use my location" button / retry */
   const locate = useCallback(() => {
     if (!hasGeolocation()) {
-      setState(initialState());
+      setState((s) => (s.place ? s : { place: null, status: 'error', error: 'geo-unavailable' }));
       return;
     }
     const id = ++requestRef.current;
-    setState((s) => ({ ...s, status: 'locating', error: null }));
+    setState((s) => ({ ...s, status: s.place && s.isCurrentLocation ? 'ready' : 'locating', error: null }));
     requestPosition(id);
   }, [requestPosition]);
 
-  // Start with the device location
+  // On start: find the device, unless the user was last looking at a chosen city
   useEffect(() => {
     if (!hasGeolocation()) return;
+    const last = loadLastPlace();
+    if (last && !last.isCurrentLocation) return;
     requestPosition(++requestRef.current);
   }, [requestPosition]);
 
-  return { ...state, selectPlace, searchCity, locate };
+  return { ...state, selectPlace, searchCity, locate, clearNotice };
 };

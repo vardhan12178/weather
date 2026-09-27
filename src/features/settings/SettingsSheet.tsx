@@ -1,6 +1,7 @@
-import { Navigation, RefreshCw } from 'lucide-react';
+import { Navigation, RefreshCw, Share, Smartphone } from 'lucide-react';
 import Sheet from '../../components/Sheet';
 import { useSettings } from '../../context/settings';
+import type { InstallState } from '../pwa/useInstallPrompt';
 import type { Unit } from '../../types/weather';
 
 const UNITS: { value: Unit; label: string; hint: string }[] = [
@@ -15,9 +16,10 @@ interface SettingsSheetProps {
   refreshing: boolean;
   updatedLabel: string;
   onLocate: () => void;
+  install: InstallState;
 }
 
-const SettingsSheet = ({ open, onClose, onRefresh, refreshing, updatedLabel, onLocate }: SettingsSheetProps) => {
+const SettingsSheet = ({ open, onClose, onRefresh, refreshing, updatedLabel, onLocate, install }: SettingsSheetProps) => {
   const { unit, setUnit } = useSettings();
 
   return (
@@ -66,6 +68,26 @@ const SettingsSheet = ({ open, onClose, onRefresh, refreshing, updatedLabel, onL
             <Navigation size={20} aria-hidden="true" />
             <span className="text-headline font-semibold">Use my current location</span>
           </button>
+          {install.canInstall && (
+            <button type="button" onClick={install.install} className="flex min-h-14 items-center gap-3 rounded-2xl px-3 text-left hover:bg-white/5">
+              <Smartphone size={20} aria-hidden="true" />
+              <span>
+                <span className="block text-headline font-semibold">Install app</span>
+                <span className="block text-footnote text-white/85">Open from your home screen, works offline</span>
+              </span>
+            </button>
+          )}
+          {install.showIosHint && (
+            <div className="flex min-h-14 items-center gap-3 px-3 py-2">
+              <Share size={20} className="shrink-0" aria-hidden="true" />
+              <span>
+                <span className="block text-headline font-semibold">Install on iPhone or iPad</span>
+                <span className="block text-footnote text-white/85">
+                  Tap Share in Safari, then Add to Home Screen.
+                </span>
+              </span>
+            </div>
+          )}
         </div>
 
         <p className="text-footnote text-white/85">

@@ -21,6 +21,7 @@ export const writeJson = (key: string, value: unknown): void => {
 export const STORAGE_KEYS = {
   unit: 'weatherly:unit',
   lastPlace: 'weatherly:lastPlace',
+  installDismissed: 'weatherly:installDismissed',
   // Legacy names kept so existing users don't lose their data
   favorites: 'weatherFavorites',
   recentSearches: 'recentSearches',

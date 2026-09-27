@@ -5,6 +5,10 @@ coloured sky, the current temperature up front, an hourly strip with a
 one-line summary, a 7-day list, tappable detail tiles with charts, saved places,
 and alerts for real warnings. Mobile-first; two columns on desktop.
 
+It's also an installable **PWA**: add it to your home screen and it opens
+instantly with your last forecast, works offline, and supports
+pull-to-refresh.
+
 Weather data comes from [Open-Meteo](https://open-meteo.com/) (no API key
 needed) and place names from [OpenStreetMap Nominatim](https://nominatim.org/).
 
@@ -21,7 +25,7 @@ npm run dev        # http://localhost:3000 — also prints a Network URL you can
 | ------------------- | ------------------------------------------------ |
 | `npm run dev`       | Dev server with hot reload                       |
 | `npm run build`     | Type-check, then build to `dist/`                |
-| `npm run preview`   | Serve the production build locally               |
+| `npm run preview`   | Serve the production build locally (the service worker only runs here, not in `dev`) |
 | `npm test`          | Unit tests (Vitest)                              |
 | `npm run typecheck` | TypeScript only                                  |
 | `npm run lint`      | ESLint                                           |
@@ -44,6 +48,7 @@ src/
     favorites/  saved places
     settings/   settings sheet (units, refresh)
   components/   app-wide pieces: top bar, bottom sheet, icon button, icons, errors
+  features/pwa/ service-worker updates, install prompt, pull-to-refresh
   styles/       Tailwind theme + the CSS weather backdrop (sky.css)
   pages/        Home — wires the hooks to the UI
 ```
@@ -60,6 +65,21 @@ Key ideas:
 - **No heavy libraries.** The sky (rain, snow, stars, clouds, lightning) is
   CSS animated with `transform` only; charts are small hand-written SVG. The
   whole app is ~100 KB of JavaScript gzipped.
+- **Offline-first PWA.** The service worker (Workbox via `vite-plugin-pwa`)
+  precaches the app shell and font. Forecasts are persisted by TanStack Query
+  to localStorage — not cached by the service worker — so offline data keeps its
+  real "updated" time. The app reopens on the last place whose forecast loaded,
+  then refines "my location" with GPS in the background.
 - **Accessible by default**: 44 px touch targets, nothing under 12 px, WCAG
   4.5:1 text contrast on every sky, sheets built on `<dialog>`, charts readable
   with arrow keys and as a table, and all motion off with "reduce motion".
+
+## Installing on a phone
+
+- **Android / Chrome / Edge:** open the site, then tap **Install** in the
+  banner (or ⋯ → Settings → Install app).
+- **iPhone / iPad:** open in Safari → **Share** → **Add to Home Screen**.
+
+To test the installed experience locally, run `npm run build && npm run preview`
+and open the Network URL on your phone (service workers need `localhost` or
+HTTPS, so installing from a LAN address works best on the deployed site).

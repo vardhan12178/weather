@@ -1,4 +1,4 @@
-import { MapPin, Navigation, RefreshCw, Search, WifiOff, type LucideIcon } from 'lucide-react';
+import { CloudOff, MapPin, Navigation, RefreshCw, Search, WifiOff, type LucideIcon } from 'lucide-react';
 import { quickCities } from '../features/search/popularCities';
 import type { WeatherErrorCode } from '../types/weather';
 
@@ -10,9 +10,14 @@ const MESSAGES: Record<WeatherErrorCode, { icon: LucideIcon; title: string; body
     body: 'Check the spelling or try another city.',
   },
   network: {
-    icon: WifiOff,
+    icon: CloudOff,
     title: "Couldn't load the weather",
-    body: 'Check your internet connection and try again.',
+    body: 'The weather service didn’t respond. Please try again.',
+  },
+  offline: {
+    icon: WifiOff,
+    title: "You're offline",
+    body: 'Connect to the internet to load this forecast. Places you’ve viewed recently open offline.',
   },
   'geo-denied': {
     icon: Navigation,

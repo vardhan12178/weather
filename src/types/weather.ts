@@ -110,4 +110,4 @@ export interface WeatherSnapshot extends ConditionInfo {
   isDay: boolean;
 }
 
-export type WeatherErrorCode = 'not-found' | 'network' | 'geo-denied' | 'geo-unavailable';
+export type WeatherErrorCode = 'not-found' | 'network' | 'offline' | 'geo-denied' | 'geo-unavailable';

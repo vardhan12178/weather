@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { WifiOff } from 'lucide-react';
+import { Toast, ToastArea } from '../components/Toast';
 import TopBar from '../components/TopBar';
 import ErrorState from '../components/ErrorState';
 import WeatherBackground from '../features/weather/WeatherBackground';
@@ -7,6 +9,12 @@ import Skeleton from '../features/weather/Skeleton';
 import MetricSheet from '../features/weather/details/MetricSheet';
 import PlacesSheet from '../features/places/PlacesSheet';
 import SettingsSheet from '../features/settings/SettingsSheet';
+import UpdateToast from '../features/pwa/UpdateToast';
+import InstallBanner from '../features/pwa/InstallBanner';
+import PullIndicator from '../features/pwa/PullIndicator';
+import { usePullToRefresh } from '../features/pwa/usePullToRefresh';
+import { useInstallPrompt } from '../features/pwa/useInstallPrompt';
+
 import { usePlace } from '../features/weather/usePlace';
 import { usePlaceName, useWeatherReport } from '../features/weather/queries';
 import { DEFAULT_SKY, SKIES, atmosphereFor, skyFor } from '../features/weather/theme';
@@ -16,6 +24,7 @@ import { useRecentSearches } from '../features/search/useRecentSearches';
 import { useSettings } from '../context/settings';
 import { STORAGE_KEYS, writeJson } from '../lib/storage';
 import { useNow } from '../lib/useNow';
+import { useOnlineStatus } from '../lib/useOnlineStatus';
 import { formatTemp } from '../lib/units';
 import type { Place, WeatherErrorCode } from '../types/weather';
 
@@ -29,14 +38,22 @@ const ago = (ms: number, nowSeconds: number) => {
 
 const Home = () => {
   const { unit } = useSettings();
-  const { place, status, error: placeError, isCurrentLocation, selectPlace, searchCity, locate } = usePlace();
+  const { place, status, error: placeError, isCurrentLocation, notice, selectPlace, searchCity, locate, clearNotice } = usePlace();
   const weather = useWeatherReport(place);
   const placeName = usePlaceName(place);
   const { favorites, isFavorite, toggleFavorite, removeFavorite, upgradeFavorite, isFull } = useFavorites();
   const { recent, addRecent } = useRecentSearches();
   const now = useNow(30_000);
+  const online = useOnlineStatus();
+  const install = useInstallPrompt();
 
-  const [placesOpen, setPlacesOpen] = useState<null | 'browse' | 'search'>(null);
+  // The home-screen "Search" shortcut opens the app at /?action=search
+  const [placesOpen, setPlacesOpen] = useState<null | 'browse' | 'search'>(() =>
+    new URLSearchParams(window.location.search).get('action') === 'search' ? 'search' : null,
+  );
+  useEffect(() => {
+    if (window.location.search) window.history.replaceState(null, '', window.location.pathname);
+  }, []);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [metric, setMetric] = useState<MetricId | null>(null);
 
@@ -56,15 +73,18 @@ const Home = () => {
     [place, placeName.data],
   );
 
-  // Remember the last named place (fallback when location is unavailable next time)
-  useEffect(() => {
-    if (!resolvedPlace?.name) return;
-    const { lat, lon, name, country, admin1 } = resolvedPlace;
-    writeJson(STORAGE_KEYS.lastPlace, { lat, lon, name, country, admin1 });
-    upgradeFavorite(resolvedPlace);
-  }, [resolvedPlace, upgradeFavorite]);
-
   const report = weather.data;
+
+  // Remember the last place whose forecast actually loaded — the next launch opens
+  // there instantly from the offline cache (never on a place with nothing saved)
+  useEffect(() => {
+    if (!resolvedPlace?.name || !report) return;
+    const { lat, lon, name, country, admin1 } = resolvedPlace;
+    // Also remember whether it was "my location", so the next launch refines it with GPS
+    writeJson(STORAGE_KEYS.lastPlace, { lat, lon, name, country, admin1, isCurrentLocation: !!isCurrentLocation });
+    upgradeFavorite(resolvedPlace);
+  }, [resolvedPlace, report, isCurrentLocation, upgradeFavorite]);
+
   const sky = report ? skyFor(report.current.condition, report.current.isDay) : DEFAULT_SKY;
   const atmosphere = report ? atmosphereFor(report.current.condition, report.current.isDay, report.current.cloudCover) : [];
 
@@ -101,21 +121,29 @@ const Home = () => {
     [selectPlace, searchCity],
   );
 
-  const error: WeatherErrorCode | null = placeError ?? (weather.isError && !report ? 'network' : null);
+  // Offline with nothing saved for this place: TanStack pauses the query, so say why
+  const offlineNoData = place != null && !report && weather.fetchStatus === 'paused';
+  const error: WeatherErrorCode | null =
+    placeError ?? (offlineNoData ? 'offline' : weather.isError && !report ? (online ? 'network' : 'offline') : null);
   const loading = !error && (status === 'locating' || status === 'searching' || (place != null && weather.isPending));
   const refreshing = weather.isFetching && !weather.isPending;
   const retry =
-    error === 'network'
+    error === 'network' || error === 'offline'
       ? () => (place ? weather.refetch() : locate())
       : error === 'geo-denied' || error === 'geo-unavailable'
         ? locate
         : undefined;
 
-  const updatedLabel = refreshing
-    ? 'Updating…'
-    : weather.isError && report
-      ? `Couldn't update · from ${ago(weather.dataUpdatedAt, now)}`
-      : `Updated ${ago(weather.dataUpdatedAt, now)}`;
+  const updatedLabel = !online
+    ? `Offline · updated ${ago(weather.dataUpdatedAt, now)}`
+    : refreshing
+      ? 'Updating…'
+      : weather.isError && report
+        ? `Couldn't update · from ${ago(weather.dataUpdatedAt, now)}`
+        : `Updated ${ago(weather.dataUpdatedAt, now)}`;
+
+  const refresh = useCallback(() => weather.refetch(), [weather]);
+  const { pull, refreshing: pulling } = usePullToRefresh(refresh, !!report && !loading && online);
 
   const title =
     resolvedPlace?.name ?? (status === 'locating' ? 'Finding you…' : status === 'searching' ? 'Searching…' : isCurrentLocation ? 'My location' : 'Weatherly');
@@ -139,7 +167,18 @@ const Home = () => {
         }
       />
 
-      <main className="mx-auto w-full max-w-6xl px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:px-6">
+      <PullIndicator pull={pull} refreshing={pulling} />
+
+      {!online && report && (
+        <p role="status" className="mx-auto mt-1 flex w-fit items-center gap-2 rounded-full bg-surface-raised/90 px-4 py-2 text-footnote font-semibold shadow-lg">
+          <WifiOff size={14} aria-hidden="true" /> You're offline — showing the last saved forecast
+        </p>
+      )}
+
+      <main
+        className="mx-auto w-full max-w-6xl px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] transition-transform sm:px-6"
+        style={pull > 0 ? { transform: `translateY(${pull * 0.4}px)` } : undefined}
+      >
         {loading && <Skeleton />}
 
         {error && <ErrorState type={error} onOpenSearch={() => setPlacesOpen('search')} onSearch={handleSearch} onRetry={retry} />}
@@ -170,9 +209,20 @@ const Home = () => {
         refreshing={refreshing}
         updatedLabel={report ? updatedLabel : 'No forecast loaded yet'}
         onLocate={locate}
+        install={install}
       />
 
       {report && <MetricSheet metric={metric} onClose={() => setMetric(null)} report={report} unit={unit} />}
+
+      <ToastArea>
+        {notice === 'offline-search' && (
+          <Toast icon={<WifiOff size={18} />} onDismiss={clearNotice}>
+            You're offline. Searching for a new place needs a connection.
+          </Toast>
+        )}
+        <UpdateToast />
+        {report && <InstallBanner install={install} />}
+      </ToastArea>
     </>
   );
 };
