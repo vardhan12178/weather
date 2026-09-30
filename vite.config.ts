@@ -22,7 +22,8 @@ export default defineConfig({
         scope: '/',
         display: 'standalone',
         background_color: '#0e1a33',
-        theme_color: '#1a5bbd',
+        // Same navy as the background, so the launch splash is one colour
+        theme_color: '#0e1a33',
         categories: ['weather', 'utilities'],
         icons: [
           { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

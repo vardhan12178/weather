@@ -6,7 +6,8 @@
 
 @property --sky-top {
   syntax: '<color>';
-  inherits: false;
+  /* Inherited so the cap below can use it (and follow its cross-fade) */
+  inherits: true;
   initial-value: #1a5bbd;
 }
 @property --sky-bottom {
@@ -125,6 +126,19 @@
   transform-origin: center;
   animation: sky-fall-200 22s linear infinite;
   opacity: 0.6;
+}
+
+/*
+  ── Cap: a flat strip of the sky's top colour that fades out ───────────────
+  An installed app's status bar is painted by the OS in the flat theme colour
+  (the sky's top colour). The glow of the sun or clouds made the page's top
+  edge lighter than that, so a different-looking band showed around the
+  camera. The cap sits over those effects so the edge always matches the bar.
+*/
+.sky-cap {
+  bottom: auto;
+  height: calc(env(safe-area-inset-top) + 96px);
+  background: linear-gradient(to bottom, var(--sky-top) env(safe-area-inset-top), transparent);
 }
 
 /* ── Storm: an occasional lightning flash ─────────────────────────────────── */
