@@ -22,6 +22,8 @@ export const STORAGE_KEYS = {
   unit: 'weatherly:unit',
   lastPlace: 'weatherly:lastPlace',
   installDismissed: 'weatherly:installDismissed',
+  // Also read by the inline script in index.html — keep the name and shape in sync
+  sky: 'weatherly:sky',
   // Legacy names kept so existing users don't lose their data
   favorites: 'weatherFavorites',
   recentSearches: 'recentSearches',

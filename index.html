@@ -18,6 +18,19 @@
     <meta name="apple-mobile-web-app-title" content="Weatherly" />
     
     <title>Weatherly | Live Forecast</title>
+
+    <!-- Start in the colours of the last forecast (saved by the app), so the status bar doesn't flash blue on launch -->
+    <script>
+      try {
+        var s = JSON.parse(localStorage.getItem('weatherly:sky'));
+        var hex = /^#[0-9a-f]{6}$/i;
+        if (s && hex.test(s.top) && hex.test(s.bottom)) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', s.top);
+          document.documentElement.style.setProperty('--sky-top-color', s.top);
+          document.documentElement.style.setProperty('--sky-bottom-color', s.bottom);
+        }
+      } catch (e) {}
+    </script>
     
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://weatherly.balavardhan.dev/">

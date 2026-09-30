@@ -17,16 +17,22 @@ import { useInstallPrompt } from '../features/pwa/useInstallPrompt';
 
 import { usePlace } from '../features/weather/usePlace';
 import { usePlaceName, useWeatherReport } from '../features/weather/queries';
-import { DEFAULT_SKY, SKIES, atmosphereFor, skyFor } from '../features/weather/theme';
+import { DEFAULT_SKY, SKIES, atmosphereFor, skyFor, type Sky } from '../features/weather/theme';
 import type { MetricId } from '../features/weather/metrics';
 import { useFavorites, type SavedPlace } from '../features/favorites/useFavorites';
 import { useRecentSearches } from '../features/search/useRecentSearches';
 import { useSettings } from '../context/settings';
-import { STORAGE_KEYS, writeJson } from '../lib/storage';
+import { STORAGE_KEYS, readJson, writeJson } from '../lib/storage';
 import { useNow } from '../lib/useNow';
 import { useOnlineStatus } from '../lib/useOnlineStatus';
 import { formatTemp } from '../lib/units';
 import type { Place, WeatherErrorCode } from '../types/weather';
+
+/** The sky of the last forecast shown, so a launch doesn't flash a different colour first */
+const readLastSky = (): Sky => {
+  const key = readJson<{ key?: string } | null>(STORAGE_KEYS.sky, null)?.key;
+  return key && key in SKIES ? (key as Sky) : DEFAULT_SKY;
+};
 
 const ago = (ms: number, nowSeconds: number) => {
   const minutes = Math.max(0, Math.floor((nowSeconds * 1000 - ms) / 60_000));
@@ -85,15 +91,19 @@ const Home = () => {
     upgradeFavorite(resolvedPlace);
   }, [resolvedPlace, report, isCurrentLocation, upgradeFavorite]);
 
-  const sky = report ? skyFor(report.current.condition, report.current.isDay) : DEFAULT_SKY;
+  const [lastSky] = useState(readLastSky);
+  const sky = report ? skyFor(report.current.condition, report.current.isDay) : lastSky;
   const atmosphere = report ? atmosphereFor(report.current.condition, report.current.isDay, report.current.cloudCover) : [];
 
-  // Match the browser/OS status bar (and the compact top bar) to the sky
+  // Match the browser/OS status bar (and the compact top bar) to the sky. The
+  // inline script in index.html applies the saved colours before the first paint.
   useEffect(() => {
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', SKIES[sky].top);
-    document.documentElement.style.setProperty('--sky-top-color', SKIES[sky].top);
-    document.documentElement.style.setProperty('--sky-bottom-color', SKIES[sky].bottom);
-  }, [sky]);
+    const { top, bottom } = SKIES[sky];
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', top);
+    document.documentElement.style.setProperty('--sky-top-color', top);
+    document.documentElement.style.setProperty('--sky-bottom-color', bottom);
+    if (report) writeJson(STORAGE_KEYS.sky, { key: sky, top, bottom });
+  }, [sky, report]);
 
   const handleSearch = useCallback(
     (term: string) => {

@@ -26,6 +26,7 @@ const WeatherBackground = ({ sky, atmosphere }: WeatherBackgroundProps) => {
       {atmosphere.includes('fog') && <div className="sky-fog" />}
       {atmosphere.includes('rain') && <div className="sky-rain" />}
       {atmosphere.includes('snow') && <div className="sky-snow" />}
+      <div className="sky-cap" />
       {atmosphere.includes('storm') && <div className="sky-storm" />}
     </div>
   );
